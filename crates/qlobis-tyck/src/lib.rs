@@ -13,7 +13,24 @@ use qlobis_ast::builtins::{
 };
 use qlobis_ast::diag::{suggest_name, Diagnostic, Diagnostics};
 use qlobis_ast::*;
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
+
+thread_local! {
+    /// Names of traits seen this run. A trait name in type position means
+    /// "trait object" and resolves to `Type::Any` (dynamic dispatch).
+    static TRAIT_NAMES: RefCell<HashSet<String>> = RefCell::new(HashSet::new());
+}
+
+fn register_trait_name(name: &str) {
+    TRAIT_NAMES.with(|t| {
+        t.borrow_mut().insert(name.to_string());
+    });
+}
+
+fn is_trait_name(name: &str) -> bool {
+    TRAIT_NAMES.with(|t| t.borrow().contains(name))
+}
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -329,6 +346,7 @@ impl<'a> Checker<'a> {
                             self.trait_index
                                 .insert(t.name.name.clone(), self.traits_raw.len());
                             self.traits_raw.push((m.path.clone(), t.clone()));
+                            register_trait_name(&t.name.name);
                         }
                     }
                     Item::Func(f) => {
@@ -1045,6 +1063,10 @@ fn resolve_type_impl(
                         .collect();
                     return Type::Struct(name.clone(), resolved);
                 }
+                if is_trait_name(name) {
+                    // Trait object: methods dispatched dynamically (lenient).
+                    return Type::Any;
+                }
                 let mut candidates: Vec<String> = struct_index.keys().cloned().collect();
                 candidates.extend(
                     ["int", "float", "str", "bool", "none", "any", "list", "map"]
@@ -1562,6 +1584,10 @@ impl<'a> FnCtx<'a> {
                     };
                     let t = self.check_expr(item, &expected_e);
                     if t == FREE_INFER {
+                        continue;
+                    }
+                    // `list<any>` annotation: every element coerces to `any`.
+                    if elem_expected == Type::Any {
                         continue;
                     }
                     match &elem_ty {

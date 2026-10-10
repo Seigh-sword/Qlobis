@@ -10,3 +10,4 @@
 # textkit = { git = "https://github.com/qlobis-community/textkit", tag = "v1.2.0", description = "text formatting and templating" }
 # geometry = { git = "https://github.com/qlobis-community/geometry", tag = "v0.3.1", description = "points, vectors, and shapes" }
 # jsonkit = { git = "https://github.com/qlobis-community/jsonkit", rev = "8f31c2a", description = "JSON parsing and writing" }
+qlobis-demo = { path = "/home/user/.qlobis/packages/qlobis-demo-0.1.0", description = "published 0.1.0" }
