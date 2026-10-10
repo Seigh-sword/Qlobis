@@ -367,7 +367,7 @@ impl<'a> Parser<'a> {
                 }
                 break;
             }
-            self.expect(Tok::Gt, "`>`")?;
+            self.expect_gt("`>`")?;
         }
         Ok(out)
     }
@@ -572,6 +572,29 @@ impl<'a> Parser<'a> {
 
     // -- types -------------------------------------------------------------
 
+    /// Consume a `>` in type position. A `>>` token is split into two `>`
+    /// tokens so `list<list<T>>` parses like it reads.
+    fn expect_gt(&mut self, what: &str) -> PResult<()> {
+        if matches!(self.peek(), Tok::Shr) {
+            let sp = self.tokens[self.pos].span;
+            self.tokens.splice(
+                self.pos..self.pos + 1,
+                [
+                    qlobis_lexer::Token {
+                        tok: Tok::Gt,
+                        span: sp,
+                    },
+                    qlobis_lexer::Token {
+                        tok: Tok::Gt,
+                        span: sp,
+                    },
+                ],
+            );
+        }
+        self.expect(Tok::Gt, what)?;
+        Ok(())
+    }
+
     fn parse_type(&mut self) -> PResult<TypeExpr> {
         let start = self.span();
         match self.peek().clone() {
@@ -608,7 +631,7 @@ impl<'a> Parser<'a> {
                         }
                         break;
                     }
-                    self.expect(Tok::Gt, "`>`")?;
+                    self.expect_gt("`>`")?;
                 }
                 let span = start.merge(self.prev_span());
                 Ok(TypeExpr::Named { name, args, span })

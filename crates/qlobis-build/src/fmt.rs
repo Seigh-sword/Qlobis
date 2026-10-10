@@ -120,6 +120,8 @@ fn escape(s: &str) -> String {
         match c {
             '"' => out.push_str("\\\""),
             '\\' => out.push_str("\\\\"),
+            '{' => out.push_str("\\{"),
+            '}' => out.push_str("\\}"),
             '\n' => out.push_str("\\n"),
             '\t' => out.push_str("\\t"),
             '\r' => out.push_str("\\r"),

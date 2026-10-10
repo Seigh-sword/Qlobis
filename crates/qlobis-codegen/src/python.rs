@@ -646,6 +646,10 @@ def tostr(v):
         if v == int(v) and abs(v) < 1e16:
             return str(int(v)) + ".0"
         return str(v)
+    if isinstance(v, list):
+        return "[" + ", ".join(tostr(x) for x in v) + "]"
+    if isinstance(v, dict):
+        return "{" + ", ".join(tostr(k) + ": " + tostr(val) for k, val in v.items()) + "}"
     return str(v)
 
 
