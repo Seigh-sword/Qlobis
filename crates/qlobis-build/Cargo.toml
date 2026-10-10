@@ -1,0 +1,13 @@
+[package]
+name = "qlobis-build"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Build system: qlobconfig.toml, package registry, dependency resolution, orchestration"
+
+[dependencies]
+qlobis-ast = { workspace = true }
+qlobis-parser = { workspace = true }
+qlobis-tyck = { workspace = true }
+qlobis-ir = { workspace = true }
+qlobis-codegen = { workspace = true }

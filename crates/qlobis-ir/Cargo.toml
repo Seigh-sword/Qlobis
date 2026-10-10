@@ -1,0 +1,10 @@
+[package]
+name = "qlobis-ir"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Mid-level IR, optimization passes, and IR lowering for native codegen"
+
+[dependencies]
+qlobis-ast = { workspace = true }
+qlobis-tyck = { workspace = true }

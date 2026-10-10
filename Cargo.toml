@@ -1,0 +1,37 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/qlobis-ast",
+    "crates/qlobis-lexer",
+    "crates/qlobis-parser",
+    "crates/qlobis-tyck",
+    "crates/qlobis-ir",
+    "crates/qlobis-codegen",
+    "crates/qlobis-build",
+    "crates/qlobis",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/Seigh-sword/Qlobis"
+authors = ["Qlobis contributors"]
+
+# Qlobis is intentionally dependency-free: every crate builds with a stock
+# `rustc`/`cargo` and nothing from crates.io. This keeps the compiler usable in
+# air-gapped / restricted environments (the same environments its package
+# manager is designed to work in).
+[workspace.dependencies]
+qlobis-ast = { path = "crates/qlobis-ast" }
+qlobis-lexer = { path = "crates/qlobis-lexer" }
+qlobis-parser = { path = "crates/qlobis-parser" }
+qlobis-tyck = { path = "crates/qlobis-tyck" }
+qlobis-ir = { path = "crates/qlobis-ir" }
+qlobis-codegen = { path = "crates/qlobis-codegen" }
+qlobis-build = { path = "crates/qlobis-build" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+strip = true

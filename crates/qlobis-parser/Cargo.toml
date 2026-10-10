@@ -1,0 +1,10 @@
+[package]
+name = "qlobis-parser"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Recursive-descent parser: tokens to Qlobis AST"
+
+[dependencies]
+qlobis-ast = { workspace = true }
+qlobis-lexer = { workspace = true }

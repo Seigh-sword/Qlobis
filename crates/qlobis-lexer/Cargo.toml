@@ -1,0 +1,9 @@
+[package]
+name = "qlobis-lexer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Tokenizer for Qlobis source files"
+
+[dependencies]
+qlobis-ast = { workspace = true }

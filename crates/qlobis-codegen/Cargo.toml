@@ -1,0 +1,14 @@
+[package]
+name = "qlobis-codegen"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Per-target code generation backends (Python, PHP, Kotlin, Web, Native)"
+
+[dependencies]
+qlobis-ast = { workspace = true }
+qlobis-tyck = { workspace = true }
+qlobis-ir = { workspace = true }
+
+[dev-dependencies]
+qlobis-parser = { workspace = true }

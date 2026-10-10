@@ -1,0 +1,17 @@
+[package]
+name = "qlobis"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Qlobis multi-target language compiler — CLI"
+
+[[bin]]
+name = "qlobis"
+path = "src/main.rs"
+
+[dependencies]
+qlobis-ast = { workspace = true }
+qlobis-parser = { workspace = true }
+qlobis-tyck = { workspace = true }
+qlobis-build = { workspace = true }
+qlobis-codegen = { workspace = true }

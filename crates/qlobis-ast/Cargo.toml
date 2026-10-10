@@ -1,0 +1,8 @@
+[package]
+name = "qlobis-ast"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared AST, type, span and diagnostic definitions for the Qlobis compiler"
+
+[dependencies]
