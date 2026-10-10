@@ -24,6 +24,7 @@ dependencies = [
  "qlobis-ast",
  "qlobis-codegen",
  "qlobis-ir",
+ "qlobis-lexer",
  "qlobis-parser",
  "qlobis-tyck",
 ]

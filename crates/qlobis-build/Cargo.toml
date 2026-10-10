@@ -1,13 +1,13 @@
 [package]
 name = "qlobis-build"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-description = "Build system: qlobconfig.toml, package registry, dependency resolution, orchestration"
+version = "0.1.0"
+edition = "2021"
+description = "Build orchestration, configuration, and package registry for the Qlobis compiler"
 
 [dependencies]
-qlobis-ast = { workspace = true }
-qlobis-parser = { workspace = true }
-qlobis-tyck = { workspace = true }
-qlobis-ir = { workspace = true }
-qlobis-codegen = { workspace = true }
+qlobis-ast = { path = "../qlobis-ast" }
+qlobis-lexer = { path = "../qlobis-lexer" }
+qlobis-parser = { path = "../qlobis-parser" }
+qlobis-tyck = { path = "../qlobis-tyck" }
+qlobis-codegen = { path = "../qlobis-codegen" }
+qlobis-ir = { path = "../qlobis-ir" }
