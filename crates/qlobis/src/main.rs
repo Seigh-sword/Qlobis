@@ -335,10 +335,6 @@ fn cmd_publish(args: &[String]) -> i32 {
         Ok(o) => o,
         Err(e) => return fail(&e),
     };
-    let cfg = match config::load_config(&opts.root) {
-        Ok(c) => c,
-        Err(e) => return fail(&e),
-    };
     // Build everything to prove the package compiles, then record metadata.
     let (cfg, prog, _) = match load(&opts) {
         Ok(x) => x,
