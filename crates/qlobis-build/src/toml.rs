@@ -88,9 +88,9 @@ pub fn parse_toml(src: &str) -> Result<Table, String> {
             }
             continue;
         }
-        let eq = line.find('=').ok_or_else(|| {
-            format!("line {}: expected `key = value`", lineno + 1)
-        })?;
+        let eq = line
+            .find('=')
+            .ok_or_else(|| format!("line {}: expected `key = value`", lineno + 1))?;
         let key = line[..eq].trim().trim_matches('"').to_string();
         let value_src = line[eq + 1..].trim();
         let value = parse_value(value_src, lineno + 1)?;
@@ -133,16 +133,16 @@ fn parse_value(src: &str, lineno: usize) -> Result<Value, String> {
         return Ok(Value::Bool(false));
     }
     if s.starts_with('"') {
-        let end = s.rfind('"').ok_or_else(|| {
-            format!("line {}: unterminated string", lineno)
-        })?;
+        let end = s
+            .rfind('"')
+            .ok_or_else(|| format!("line {}: unterminated string", lineno))?;
         let inner = &s[1..end];
         return Ok(Value::Str(unescape(inner)));
     }
     if s.starts_with('\'') {
-        let end = s.rfind('\'').ok_or_else(|| {
-            format!("line {}: unterminated string", lineno)
-        })?;
+        let end = s
+            .rfind('\'')
+            .ok_or_else(|| format!("line {}: unterminated string", lineno))?;
         return Ok(Value::Str(s[1..end].to_string()));
     }
     if s.starts_with('[') {

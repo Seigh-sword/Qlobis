@@ -9,7 +9,10 @@ fn stdlib_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../stdlib")
 }
 
-fn load_stdlib(map: &mut qlobis_ast::SourceMap, diags: &mut qlobis_ast::Diagnostics) -> Vec<ModuleInput> {
+fn load_stdlib(
+    map: &mut qlobis_ast::SourceMap,
+    diags: &mut qlobis_ast::Diagnostics,
+) -> Vec<ModuleInput> {
     let dir = stdlib_root();
     let mut modules = Vec::new();
     let mut files: Vec<_> = std::fs::read_dir(&dir)
@@ -113,7 +116,12 @@ fn stdlib_typechecks_and_executes() {
         program,
         is_stdlib: false,
     });
-    let checked = check(&modules, "app", &[Target::Python, Target::Native], &mut diags);
+    let checked = check(
+        &modules,
+        "app",
+        &[Target::Python, Target::Native],
+        &mut diags,
+    );
     assert!(
         !diags.has_errors(),
         "stdlib type errors:\n{}",
@@ -147,7 +155,12 @@ fn stdlib_typechecks_and_executes() {
         .expect("python3 available");
     let stdout = String::from_utf8_lossy(&out.stdout).to_string();
     let stderr = String::from_utf8_lossy(&out.stderr).to_string();
-    assert!(out.status.success(), "python failed:\n{}\n{}", stdout, stderr);
+    assert!(
+        out.status.success(),
+        "python failed:\n{}\n{}",
+        stdout,
+        stderr
+    );
 
     let expect = "\
 == stdlib e2e ==

@@ -1,6 +1,6 @@
 //! AST -> IR lowering for the native pipeline.
 
-use crate::{CallTarget, IrFunc, IrProgram, IrStruct, RValue, StrPiece, Stmt as IrStmt};
+use crate::{CallTarget, IrFunc, IrProgram, IrStruct, RValue, Stmt as IrStmt, StrPiece};
 use qlobis_ast::builtins::{intrinsic, is_conversion_name, is_intrinsic_name};
 use qlobis_ast::*;
 use qlobis_tyck::{CheckOutput, ModuleInput, Target};
@@ -38,7 +38,10 @@ struct LowerCtx<'a> {
 
 /// Flatten `std::io` + `println` into a unique emitted name.
 pub fn emit_name(module: &str, name: &str) -> String {
-    let m = module.replace("::", "_").replace('/', "_").replace('-', "_");
+    let m = module
+        .replace("::", "_")
+        .replace('/', "_")
+        .replace('-', "_");
     format!("qlob_{}_{}", m, name)
 }
 
@@ -111,11 +114,14 @@ impl<'a> LowerCtx<'a> {
                                 // Methods on non-struct types (rare): keep as free
                                 // functions with a mangled name.
                                 let mut f = func;
-                                f.name = emit_name(&m.path, &format!(
-                                    "{}_{}",
-                                    sanitize(&struct_name),
-                                    f.qual_name.rsplit("::").next().unwrap_or(&f.qual_name)
-                                ));
+                                f.name = emit_name(
+                                    &m.path,
+                                    &format!(
+                                        "{}_{}",
+                                        sanitize(&struct_name),
+                                        f.qual_name.rsplit("::").next().unwrap_or(&f.qual_name)
+                                    ),
+                                );
                                 self.funcs.push(f);
                             }
                         }
@@ -139,7 +145,9 @@ impl<'a> LowerCtx<'a> {
     fn applies(&self, f: &FuncDef) -> bool {
         match &f.target {
             None => true,
-            Some(names) => names.iter().any(|n| Target::parse(&n.name) == Some(self.target)),
+            Some(names) => names
+                .iter()
+                .any(|n| Target::parse(&n.name) == Some(self.target)),
         }
     }
 
@@ -149,11 +157,10 @@ impl<'a> LowerCtx<'a> {
             names.push(("self".to_string(), Type::Any));
         }
         for p in &f.params {
-            let ty = p
-                .ty
-                .as_ref()
-                .map(|t| self.checked.type_of(t.span()))
-                .unwrap_or(Type::Any);
+            let ty =
+                p.ty.as_ref()
+                    .map(|t| self.checked.type_of(t.span()))
+                    .unwrap_or(Type::Any);
             if p.is_self {
                 continue;
             }
@@ -246,7 +253,9 @@ impl<'b, 'a> FuncLower<'b, 'a> {
 
     fn stmt(&mut self, s: &Stmt) -> IrStmt {
         match s {
-            Stmt::Let { name, ty, value, .. } => {
+            Stmt::Let {
+                name, ty, value, ..
+            } => {
                 let vt = self.ty(value);
                 let declared = ty
                     .as_ref()
@@ -256,15 +265,15 @@ impl<'b, 'a> FuncLower<'b, 'a> {
                 let slot = self.declare(&name.name, declared);
                 IrStmt::Let(slot, rv)
             }
-            Stmt::Assign { target, op, value, .. } => {
+            Stmt::Assign {
+                target, op, value, ..
+            } => {
                 let val = self.expr(value);
                 match target {
                     Expr::Ident(id) => {
                         let slot = self.lookup(&id.name).unwrap_or(0);
                         match op {
-                            Some(op) => {
-                                IrStmt::AssignCompound(slot, *op, Box::new(val))
-                            }
+                            Some(op) => IrStmt::AssignCompound(slot, *op, Box::new(val)),
                             None => IrStmt::Assign(slot, val),
                         }
                     }
@@ -282,12 +291,7 @@ impl<'b, 'a> FuncLower<'b, 'a> {
                                     Box::new(RValue::Local(islot)),
                                     self.ty(target),
                                 );
-                                RValue::Binary(
-                                    *op,
-                                    Box::new(cur),
-                                    Box::new(val),
-                                    self.ty(target),
-                                )
+                                RValue::Binary(*op, Box::new(cur), Box::new(val), self.ty(target))
                             }
                             None => val,
                         };
@@ -316,12 +320,7 @@ impl<'b, 'a> FuncLower<'b, 'a> {
                                     name.name.clone(),
                                     self.ty(target),
                                 );
-                                RValue::Binary(
-                                    *op,
-                                    Box::new(cur),
-                                    Box::new(val),
-                                    self.ty(target),
-                                )
+                                RValue::Binary(*op, Box::new(cur), Box::new(val), self.ty(target))
                             }
                             None => val,
                         };
@@ -346,7 +345,12 @@ impl<'b, 'a> FuncLower<'b, 'a> {
                     }
                 }
             }
-            Stmt::If { cond, then, otherwise, .. } => {
+            Stmt::If {
+                cond,
+                then,
+                otherwise,
+                ..
+            } => {
                 let c = self.expr(cond);
                 let t = self.block(&then.stmts);
                 let e = otherwise
@@ -360,7 +364,9 @@ impl<'b, 'a> FuncLower<'b, 'a> {
                 let b = self.block(&body.stmts);
                 IrStmt::While(c, b)
             }
-            Stmt::For { var, iter, body, .. } => {
+            Stmt::For {
+                var, iter, body, ..
+            } => {
                 let it = self.expr(iter);
                 self.scopes.push(HashMap::new());
                 let vt = match self.ty(iter) {
@@ -374,9 +380,7 @@ impl<'b, 'a> FuncLower<'b, 'a> {
                 self.scopes.pop();
                 IrStmt::For(slot, it, b)
             }
-            Stmt::Return { value, .. } => {
-                IrStmt::Return(value.as_ref().map(|v| self.expr(v)))
-            }
+            Stmt::Return { value, .. } => IrStmt::Return(value.as_ref().map(|v| self.expr(v))),
             Stmt::Throw { value, .. } => IrStmt::Throw(self.expr(value)),
             Stmt::Try { body, catch, .. } => {
                 let b = self.block(&body.stmts);
@@ -482,7 +486,9 @@ impl<'b, 'a> FuncLower<'b, 'a> {
                 let r = self.expr(recv);
                 RValue::Field(Box::new(r), name.name.clone(), ty)
             }
-            Expr::Method { recv, name, args, .. } => {
+            Expr::Method {
+                recv, name, args, ..
+            } => {
                 // `ns.fn(...)`: module function call.
                 if let Expr::Ident(ns) = &**recv {
                     if self.lookup(&ns.name).is_none() {
@@ -522,18 +528,10 @@ impl<'b, 'a> FuncLower<'b, 'a> {
                     );
                 }
                 if is_conversion_name(&name.name) || name.name == "range" {
-                    return RValue::Call(
-                        CallTarget::Builtin(name.name.clone()),
-                        vals,
-                        ret,
-                    );
+                    return RValue::Call(CallTarget::Builtin(name.name.clone()), vals, ret);
                 }
                 if is_intrinsic_name(&name.name) {
-                    return RValue::Call(
-                        CallTarget::Intrinsic(name.name.clone()),
-                        vals,
-                        ret,
-                    );
+                    return RValue::Call(CallTarget::Intrinsic(name.name.clone()), vals, ret);
                 }
                 if self.parent.struct_names.contains_key(&name.name) {
                     return RValue::StructCtor(name.name.clone(), vals, ret);
@@ -585,9 +583,12 @@ impl<'b, 'a> FuncLower<'b, 'a> {
         }
         if let RValue::Call(CallTarget::Func(name), _, _) = &rv {
             let emitted = name.clone();
-            let is_async = self.parent.checked.funcs.iter().any(|f| {
-                f.is_async && emit_name(&f.module, &f.name) == emitted
-            });
+            let is_async = self
+                .parent
+                .checked
+                .funcs
+                .iter()
+                .any(|f| f.is_async && emit_name(&f.module, &f.name) == emitted);
             if is_async {
                 return RValue::Await(Box::new(rv), ret);
             }

@@ -270,8 +270,7 @@ impl<'a> Checker<'a> {
                         }
                     }
                     None => {
-                        let candidates: Vec<String> =
-                            self.module_index.keys().cloned().collect();
+                        let candidates: Vec<String> = self.module_index.keys().cloned().collect();
                         let help = suggest_name(&imp.path, candidates.iter().map(|s| s.as_str()))
                             .map(|c| format!("did you mean `{}`?", c))
                             .unwrap_or_else(|| {
@@ -481,7 +480,11 @@ impl<'a> Checker<'a> {
             ret,
             generics,
             is_async: raw.def.is_async,
-            target: raw.def.target.as_ref().map(|t| t.iter().map(|i| i.name.clone()).collect()),
+            target: raw
+                .def
+                .target
+                .as_ref()
+                .map(|t| t.iter().map(|i| i.name.clone()).collect()),
         });
     }
 
@@ -498,7 +501,11 @@ impl<'a> Checker<'a> {
             ret,
             generics,
             is_async: raw.def.is_async,
-            target: raw.def.target.as_ref().map(|t| t.iter().map(|i| i.name.clone()).collect()),
+            target: raw
+                .def
+                .target
+                .as_ref()
+                .map(|t| t.iter().map(|i| i.name.clone()).collect()),
         });
     }
 
@@ -683,10 +690,8 @@ impl<'a> Checker<'a> {
                         );
                         continue;
                     };
-                    let tm_params: Vec<_> =
-                        tm.params.iter().filter(|p| !p.is_self).collect();
-                    let m_params: Vec<_> =
-                        m.params.iter().filter(|p| !p.is_self).collect();
+                    let tm_params: Vec<_> = tm.params.iter().filter(|p| !p.is_self).collect();
+                    let m_params: Vec<_> = m.params.iter().filter(|p| !p.is_self).collect();
                     if tm_params.len() != m_params.len() {
                         self.diags.push(
                             Diagnostic::error(format!(
@@ -695,24 +700,19 @@ impl<'a> Checker<'a> {
                             ))
                             .code("E0308")
                             .primary(m.name.span, "wrong number of parameters")
-                            .secondary(
-                                tm.name.span,
-                                "trait requires the signature shown here",
-                            ),
+                            .secondary(tm.name.span, "trait requires the signature shown here"),
                         );
                         continue;
                     }
                     for (a, b) in tm_params.iter().zip(m_params.iter()) {
-                        let at = a
-                            .ty
-                            .as_ref()
-                            .map(type_expr_to_string)
-                            .unwrap_or_else(|| "any".into());
-                        let bt = b
-                            .ty
-                            .as_ref()
-                            .map(type_expr_to_string)
-                            .unwrap_or_else(|| "any".into());
+                        let at =
+                            a.ty.as_ref()
+                                .map(type_expr_to_string)
+                                .unwrap_or_else(|| "any".into());
+                        let bt =
+                            b.ty.as_ref()
+                                .map(type_expr_to_string)
+                                .unwrap_or_else(|| "any".into());
                         if at != bt {
                             self.diags.push(
                                 Diagnostic::error(format!(
@@ -908,7 +908,13 @@ impl<'a> Checker<'a> {
         let chosen = root_names
             .iter()
             .find_map(|r| mains.iter().find(|(m, _)| m == r).cloned())
-            .or_else(|| if mains.len() == 1 { Some(mains[0].clone()) } else { None });
+            .or_else(|| {
+                if mains.len() == 1 {
+                    Some(mains[0].clone())
+                } else {
+                    None
+                }
+            });
         let Some((module, idx)) = chosen else {
             self.diags.push(
                 Diagnostic::error("multiple `main` functions found; the entry point is ambiguous")
@@ -1047,9 +1053,7 @@ fn resolve_type_impl(
                 );
                 let help = suggest_name(name, candidates.iter().map(|s| s.as_str()))
                     .map(|c| format!("did you mean `{}`?", c))
-                    .unwrap_or_else(|| {
-                        "define it with `struct` or import its module".to_string()
-                    });
+                    .unwrap_or_else(|| "define it with `struct` or import its module".to_string());
                 diags.push(
                     Diagnostic::error(format!("cannot find type `{}`", name))
                         .code("E0303")
@@ -1186,17 +1190,22 @@ impl<'a> FnCtx<'a> {
     fn record(&mut self, e: &Expr, t: &Type) -> Type {
         let resolved = self.resolve(t);
         let sp = e.span();
-        self.types.insert((sp.file, sp.start, sp.end), resolved.clone());
+        self.types
+            .insert((sp.file, sp.start, sp.end), resolved.clone());
         resolved
     }
 
     fn error(&mut self, msg: String, span: Span) {
-        self.diags.push(Diagnostic::error(msg).code("E0400").primary(span, "here"));
+        self.diags
+            .push(Diagnostic::error(msg).code("E0400").primary(span, "here"));
     }
 
     fn error_help(&mut self, msg: String, span: Span, help: String) {
         self.diags.push(
-            Diagnostic::error(msg).code("E0400").primary(span, "here").help(help),
+            Diagnostic::error(msg)
+                .code("E0400")
+                .primary(span, "here")
+                .help(help),
         );
     }
 
@@ -1236,8 +1245,7 @@ impl<'a> FnCtx<'a> {
                     );
                 } else {
                     self.diags.push(
-                        Diagnostic::warning(format!("unused variable `{}`", name))
-                            .code("W0500"),
+                        Diagnostic::warning(format!("unused variable `{}`", name)).code("W0500"),
                     );
                 }
             }
@@ -1262,7 +1270,9 @@ impl<'a> FnCtx<'a> {
     fn stmt_must_return(&mut self, s: &Stmt) -> bool {
         match s {
             Stmt::Return { .. } | Stmt::Throw { .. } => true,
-            Stmt::If { then, otherwise, .. } => {
+            Stmt::If {
+                then, otherwise, ..
+            } => {
                 let a = self.block_must_return(then);
                 let b = otherwise
                     .as_ref()
@@ -1270,7 +1280,11 @@ impl<'a> FnCtx<'a> {
                     .unwrap_or(false);
                 a && b
             }
-            Stmt::Try { body, catch: Some(c), .. } => {
+            Stmt::Try {
+                body,
+                catch: Some(c),
+                ..
+            } => {
                 let a = self.block_must_return(body);
                 let b = self.block_must_return(&c.body);
                 a && b
@@ -1282,7 +1296,9 @@ impl<'a> FnCtx<'a> {
 
     fn stmt(&mut self, s: &Stmt) {
         match s {
-            Stmt::Let { name, ty, value, .. } => {
+            Stmt::Let {
+                name, ty, value, ..
+            } => {
                 let vt = match ty {
                     Some(te) => {
                         let expected = self.resolve_type_local(te);
@@ -1296,7 +1312,12 @@ impl<'a> FnCtx<'a> {
                 };
                 self.declare(&name.name, vt);
             }
-            Stmt::Assign { target, op, value, span } => {
+            Stmt::Assign {
+                target,
+                op,
+                value,
+                span,
+            } => {
                 let tt = self.infer_resolved(target);
                 if !target.is_lvalue() {
                     self.error_help(
@@ -1310,12 +1331,7 @@ impl<'a> FnCtx<'a> {
                     let combined = self.binary_type(*op, &tt, &vt, *span);
                     if !combined.coerces_to(&tt) && tt != Type::Any {
                         self.error(
-                            format!(
-                                "cannot apply `{}` to `{}` and `{}`",
-                                op.as_str(),
-                                tt,
-                                vt
-                            ),
+                            format!("cannot apply `{}` to `{}` and `{}`", op.as_str(), tt, vt),
                             *span,
                         );
                     }
@@ -1323,7 +1339,12 @@ impl<'a> FnCtx<'a> {
                     self.type_mismatch(&vt, &tt, value.span());
                 }
             }
-            Stmt::If { cond, then, otherwise, .. } => {
+            Stmt::If {
+                cond,
+                then,
+                otherwise,
+                ..
+            } => {
                 self.expect_bool(cond);
                 self.block(then);
                 if let Some(o) = otherwise {
@@ -1336,7 +1357,9 @@ impl<'a> FnCtx<'a> {
                 self.block(body);
                 self.loop_depth -= 1;
             }
-            Stmt::For { var, iter, body, .. } => {
+            Stmt::For {
+                var, iter, body, ..
+            } => {
                 let it = self.infer_resolved(iter);
                 let elem = match &it {
                     Type::List(e) => (**e).clone(),
@@ -1589,18 +1612,27 @@ impl<'a> FnCtx<'a> {
                 for (k, v) in entries {
                     let kt = self.check_expr(
                         k,
-                        &if kexp == FREE_INFER { Type::Any } else { kexp.clone() },
+                        &if kexp == FREE_INFER {
+                            Type::Any
+                        } else {
+                            kexp.clone()
+                        },
                     );
                     let vt = self.check_expr(
                         v,
-                        &if vexp == FREE_INFER { Type::Any } else { vexp.clone() },
+                        &if vexp == FREE_INFER {
+                            Type::Any
+                        } else {
+                            vexp.clone()
+                        },
                     );
                     if kt != FREE_INFER {
                         match &key_ty {
                             None => key_ty = Some(kt),
                             Some(prev) => {
                                 if !self.unify(prev, &kt) {
-                                    key_ty = Some(self.merge_numeric(prev, &kt).unwrap_or(Type::Any));
+                                    key_ty =
+                                        Some(self.merge_numeric(prev, &kt).unwrap_or(Type::Any));
                                 }
                             }
                         }
@@ -1610,7 +1642,8 @@ impl<'a> FnCtx<'a> {
                             None => val_ty = Some(vt),
                             Some(prev) => {
                                 if !self.unify(prev, &vt) {
-                                    val_ty = Some(self.merge_numeric(prev, &vt).unwrap_or(Type::Any));
+                                    val_ty =
+                                        Some(self.merge_numeric(prev, &vt).unwrap_or(Type::Any));
                                 }
                             }
                         }
@@ -1647,10 +1680,7 @@ impl<'a> FnCtx<'a> {
                         if matches!(t, Type::Bool | Type::Any | Type::Var(_)) {
                             Type::Bool
                         } else {
-                            self.error(
-                                format!("`not` expects `bool`, found `{}`", t),
-                                expr.span(),
-                            );
+                            self.error(format!("`not` expects `bool`, found `{}`", t), expr.span());
                             Type::Bool
                         }
                     }
@@ -1658,10 +1688,7 @@ impl<'a> FnCtx<'a> {
                         if matches!(t, Type::Int | Type::Any | Type::Var(_)) {
                             Type::Int
                         } else {
-                            self.error(
-                                format!("`~` expects `int`, found `{}`", t),
-                                expr.span(),
-                            );
+                            self.error(format!("`~` expects `int`, found `{}`", t), expr.span());
                             Type::Int
                         }
                     }
@@ -1682,8 +1709,7 @@ impl<'a> FnCtx<'a> {
                         let is_async_call = self.callee_is_async(func);
                         if known && !is_async_call {
                             self.error(
-                                "`await` can only be used with `async` function calls"
-                                    .to_string(),
+                                "`await` can only be used with `async` function calls".to_string(),
                                 *span,
                             );
                         }
@@ -1727,7 +1753,12 @@ impl<'a> FnCtx<'a> {
                 }
             }
             Expr::Member { recv, name, span } => self.member_type(recv, name, *span),
-            Expr::Method { recv, name, args, span } => self.method_type(recv, name, args, *span),
+            Expr::Method {
+                recv,
+                name,
+                args,
+                span,
+            } => self.method_type(recv, name, args, *span),
             Expr::Call { func, args, span } => self.call_type(func, args, *span),
         }
     }
@@ -1762,7 +1793,11 @@ impl<'a> FnCtx<'a> {
     fn binary_type(&mut self, op: BinOp, lt: &Type, rt: &Type, span: Span) -> Type {
         let lt = self.resolve(lt);
         let rt = self.resolve(rt);
-        if matches!(lt, Type::Var(_)) && matches!(rt, Type::Var(_)) && lt != FREE_INFER && rt != FREE_INFER {
+        if matches!(lt, Type::Var(_))
+            && matches!(rt, Type::Var(_))
+            && lt != FREE_INFER
+            && rt != FREE_INFER
+        {
             if self.unify(&lt, &rt) {
                 return self.resolve(&lt);
             }
@@ -1853,8 +1888,7 @@ impl<'a> FnCtx<'a> {
                 let sargs = sargs.clone();
                 if let Some(&idx) = self.struct_index.get(&sname) {
                     let s = self.structs_raw[idx].1.clone();
-                    let generics: Vec<String> =
-                        s.generics.iter().map(|g| g.name.clone()).collect();
+                    let generics: Vec<String> = s.generics.iter().map(|g| g.name.clone()).collect();
                     if let Some(f) = s.fields.iter().find(|f| f.name.name == name.name) {
                         let ft = self.resolve_type_local(&f.ty.clone());
                         return self.substitute_generics(&ft, &generics, &sargs);
@@ -1901,20 +1935,13 @@ impl<'a> FnCtx<'a> {
                         }
                         _ => {
                             let names = self.module_func_names(&module);
-                            let help =
-                                suggest_name(&name.name, names.iter().map(|s| s.as_str()))
-                                    .map(|c| format!("did you mean `{}`?", c))
-                                    .unwrap_or_else(|| {
-                                        format!(
-                                            "module `{}` has no function `{}`",
-                                            ns.name, name.name
-                                        )
-                                    });
+                            let help = suggest_name(&name.name, names.iter().map(|s| s.as_str()))
+                                .map(|c| format!("did you mean `{}`?", c))
+                                .unwrap_or_else(|| {
+                                    format!("module `{}` has no function `{}`", ns.name, name.name)
+                                });
                             self.error_help(
-                                format!(
-                                    "module `{}` has no function `{}`",
-                                    ns.name, name.name
-                                ),
+                                format!("module `{}` has no function `{}`", ns.name, name.name),
                                 name.span,
                                 help,
                             );
@@ -1962,8 +1989,10 @@ impl<'a> FnCtx<'a> {
             self.check_args(args, &params, name.span);
             return ret;
         }
-        let mut names: Vec<String> =
-            builtin_method_names(&rt).iter().map(|s| s.to_string()).collect();
+        let mut names: Vec<String> = builtin_method_names(&rt)
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
         if let Type::Struct(sname, _) = &rt {
             for m in self.methods_raw.iter() {
                 if let Some(Type::Struct(n, _)) = &m.self_ty {
@@ -2057,8 +2086,7 @@ impl<'a> FnCtx<'a> {
             }
             if let Some(&idx) = self.struct_index.get(&name.name) {
                 let s = self.structs_raw[idx].1.clone();
-                let generics: Vec<String> =
-                    s.generics.iter().map(|g| g.name.clone()).collect();
+                let generics: Vec<String> = s.generics.iter().map(|g| g.name.clone()).collect();
                 let field_types: Vec<Type> = s
                     .fields
                     .iter()
@@ -2211,13 +2239,25 @@ impl<'a> FnCtx<'a> {
                 continue;
             }
             let t = match &p.ty {
-                Some(te) => resolve_type_impl(te, &generics, self.struct_index, self.structs_raw, self.diags),
+                Some(te) => resolve_type_impl(
+                    te,
+                    &generics,
+                    self.struct_index,
+                    self.structs_raw,
+                    self.diags,
+                ),
                 None => Type::Any,
             };
             ps.push(t);
         }
         let r = match &raw.def.ret {
-            Some(te) => resolve_type_impl(te, &generics, self.struct_index, self.structs_raw, self.diags),
+            Some(te) => resolve_type_impl(
+                te,
+                &generics,
+                self.struct_index,
+                self.structs_raw,
+                self.diags,
+            ),
             None => Type::None,
         };
         if !generics.is_empty() {
@@ -2263,13 +2303,25 @@ impl<'a> FnCtx<'a> {
                 continue;
             }
             let t = match &p.ty {
-                Some(te) => resolve_type_impl(te, &generics, self.struct_index, self.structs_raw, self.diags),
+                Some(te) => resolve_type_impl(
+                    te,
+                    &generics,
+                    self.struct_index,
+                    self.structs_raw,
+                    self.diags,
+                ),
                 None => Type::Any,
             };
             ps.push(t);
         }
         let r = match &raw.def.ret {
-            Some(te) => resolve_type_impl(te, &generics, self.struct_index, self.structs_raw, self.diags),
+            Some(te) => resolve_type_impl(
+                te,
+                &generics,
+                self.struct_index,
+                self.structs_raw,
+                self.diags,
+            ),
             None => Type::None,
         };
         Some((ps, r))
@@ -2291,7 +2343,11 @@ impl<'a> FnCtx<'a> {
         names.extend(self.module_func_names(&self.module));
         names.extend(self.imports.keys().cloned());
         names.push("self".to_string());
-        names.extend(["int", "float", "str", "bool", "range"].iter().map(|s| s.to_string()));
+        names.extend(
+            ["int", "float", "str", "bool", "range"]
+                .iter()
+                .map(|s| s.to_string()),
+        );
         names
     }
 
@@ -2454,7 +2510,11 @@ mod tests {
         );
         assert!(d.has_errors());
         let out = render(&d);
-        assert!(out.contains("no implementation for target `python`"), "{}", out);
+        assert!(
+            out.contains("no implementation for target `python`"),
+            "{}",
+            out
+        );
     }
 
     #[test]
@@ -2476,11 +2536,9 @@ mod tests {
 
     #[test]
     fn structs_and_methods() {
-        ok(
-            "struct Point {\n  x: int\n  y: int\n}\n\n\
+        ok("struct Point {\n  x: int\n  y: int\n}\n\n\
              impl Point {\n  defin sum(self) -> int {\n    return self.x + self.y\n  }\n}\n\n\
-             defin main() {\n  let p = Point(1, 2)\n  let s = p.sum()\n  let v = p.x\n}\n",
-        );
+             defin main() {\n  let p = Point(1, 2)\n  let s = p.sum()\n  let v = p.x\n}\n");
     }
 
     #[test]
@@ -2504,7 +2562,13 @@ mod tests {
     #[test]
     fn unused_import_warns() {
         let (d, _) = run_check(
-            &[("std::io", "defin println(msg: str) {\n}\n"), ("test_pkg::main", "@module.import(\"std::io\")\n\ndefin main() {}\n")],
+            &[
+                ("std::io", "defin println(msg: str) {\n}\n"),
+                (
+                    "test_pkg::main",
+                    "@module.import(\"std::io\")\n\ndefin main() {}\n",
+                ),
+            ],
             &[Target::Python],
         );
         assert!(!d.has_errors());

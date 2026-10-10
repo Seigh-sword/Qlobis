@@ -23,7 +23,10 @@ pub struct Program {
 }
 
 /// Parse + typecheck the whole source tree (project sources, stdlib, deps).
-pub fn load_program(cfg: &BuildConfig, extra_roots: &[(String, PathBuf)]) -> Result<Program, String> {
+pub fn load_program(
+    cfg: &BuildConfig,
+    extra_roots: &[(String, PathBuf)],
+) -> Result<Program, String> {
     let mut map = SourceMap::new();
     let mut diags = Diagnostics::new();
     let mut modules: Vec<ModuleInput> = Vec::new();
@@ -35,13 +38,29 @@ pub fn load_program(cfg: &BuildConfig, extra_roots: &[(String, PathBuf)]) -> Res
         .map(|s| cfg.root.join(s))
         .unwrap_or_else(|| cfg.root.join("stdlib"));
     if stdlib_dir.is_dir() {
-        collect_modules(&stdlib_dir, "std", true, &cfg.name, &mut map, &mut diags, &mut modules)?;
+        collect_modules(
+            &stdlib_dir,
+            "std",
+            true,
+            &cfg.name,
+            &mut map,
+            &mut diags,
+            &mut modules,
+        )?;
     }
     // Dependency packages.
     for (dep_name, root) in extra_roots {
         let src_dir = root.join("src");
         let dir = if src_dir.is_dir() { &src_dir } else { root };
-        collect_modules(dir, dep_name, false, dep_name, &mut map, &mut diags, &mut modules)?;
+        collect_modules(
+            dir,
+            dep_name,
+            false,
+            dep_name,
+            &mut map,
+            &mut diags,
+            &mut modules,
+        )?;
     }
     // Project sources.
     for s in &cfg.sources {
@@ -49,7 +68,15 @@ pub fn load_program(cfg: &BuildConfig, extra_roots: &[(String, PathBuf)]) -> Res
         if !dir.is_dir() {
             return Err(format!("source directory `{}` not found", dir.display()));
         }
-        collect_modules(&dir, &cfg.name, false, &cfg.name, &mut map, &mut diags, &mut modules)?;
+        collect_modules(
+            &dir,
+            &cfg.name,
+            false,
+            &cfg.name,
+            &mut map,
+            &mut diags,
+            &mut modules,
+        )?;
     }
 
     let checked = check(&modules, &cfg.name, &cfg.targets, &mut diags);
@@ -111,8 +138,8 @@ fn collect_modules(
 }
 
 fn collect_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
-    let entries = std::fs::read_dir(dir)
-        .map_err(|e| format!("cannot read dir {}: {}", dir.display(), e))?;
+    let entries =
+        std::fs::read_dir(dir).map_err(|e| format!("cannot read dir {}: {}", dir.display(), e))?;
     for e in entries {
         let e = e.map_err(|e| format!("io error: {}", e))?;
         let p = e.path();
@@ -157,13 +184,8 @@ pub fn build(cfg: &BuildConfig, prog: &Program) -> Result<BuildReport, String> {
     })
 }
 
-fn write_files(
-    dir: &Path,
-    files: &[GenFile],
-    written: &mut Vec<PathBuf>,
-) -> Result<(), String> {
-    std::fs::create_dir_all(dir)
-        .map_err(|e| format!("cannot create {}: {}", dir.display(), e))?;
+fn write_files(dir: &Path, files: &[GenFile], written: &mut Vec<PathBuf>) -> Result<(), String> {
+    std::fs::create_dir_all(dir).map_err(|e| format!("cannot create {}: {}", dir.display(), e))?;
     for f in files {
         let path = dir.join(&f.path);
         if let Some(parent) = path.parent() {
@@ -254,8 +276,8 @@ pub fn run(cfg: &BuildConfig, prog: &Program, target: Target) -> Result<i32, Str
             (dir.join(exe).display().to_string(), vec![])
         }
     };
-    if target == Target::Web && !dir.join("runner.js").exists() {
-        write_node_runner(&dir)?;
+    if target == Target::Web {
+        write_node_runner(&dir, cfg)?;
     }
     let st = std::process::Command::new(&cmd)
         .args(&args)
@@ -265,20 +287,17 @@ pub fn run(cfg: &BuildConfig, prog: &Program, target: Target) -> Result<i32, Str
     Ok(st.code().unwrap_or(1))
 }
 
-fn write_node_runner(dir: &Path) -> Result<(), String> {
-    // Find the entry function from the generated program.
-    let prog_js = std::fs::read_to_string(dir.join("js/program.js"))
-        .map_err(|e| format!("cannot read program.js: {}", e))?;
-    let entry = prog_js
-        .lines()
-        .find_map(|l| {
-            let l = l.trim_start();
-            l.strip_prefix("async function qlob_").and_then(|rest| {
-                let name = rest.split('(').next()?;
-                Some(format!("qlob_{}", name))
-            })
-        })
-        .unwrap_or_else(|| "main".to_string());
+fn write_node_runner(dir: &Path, cfg: &BuildConfig) -> Result<(), String> {
+    // The entry function is flattened: `qlob_{module}__{fn}`.
+    let entry = format!(
+        "qlob_{}_{}",
+        cfg.entry()
+            .0
+            .replace("::", "__")
+            .replace('/', "__")
+            .replace('-', "_"),
+        cfg.entry().1
+    );
     let runner = format!(
         "const fs = require('fs');\neval(fs.readFileSync('js/program.js', 'utf8'));\n(async () => {{\n  try {{\n    const r = await {entry}();\n    if (typeof r === 'number') process.exitCode = r;\n  }} catch (e) {{\n    console.error('error: ' + (e && e.message ? e.message : e));\n    process.exitCode = 1;\n  }}\n}})();\n",
         entry = entry
@@ -333,6 +352,11 @@ defin main() {
         let report = build(&cfg, &prog).unwrap();
         assert!(report.files_written.len() > 3);
         assert!(root.join("qlob/python/main_qlobis.py").exists());
-        assert!(root.join("qlob/native").join(std::env::consts::OS).join(std::env::consts::ARCH).join("app").exists());
+        assert!(root
+            .join("qlob/native")
+            .join(std::env::consts::OS)
+            .join(std::env::consts::ARCH)
+            .join("app")
+            .exists());
     }
 }

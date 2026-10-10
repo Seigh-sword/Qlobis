@@ -32,7 +32,11 @@ impl Span {
 
     /// A zero-width span at `pos`, useful for "expected X here" diagnostics.
     pub fn at(file: FileId, pos: u32) -> Self {
-        Span { file, start: pos, end: pos }
+        Span {
+            file,
+            start: pos,
+            end: pos,
+        }
     }
 
     /// Smallest span covering both `self` and `other`.
@@ -80,7 +84,12 @@ impl SourceFile {
                 line_starts.push(i as u32 + 1);
             }
         }
-        SourceFile { id, name, src, line_starts }
+        SourceFile {
+            id,
+            name,
+            src,
+            line_starts,
+        }
     }
 
     /// Convert a byte offset into a 1-based line/column pair.
@@ -126,7 +135,8 @@ impl SourceMap {
     /// Register a file and return its id.
     pub fn add_file(&mut self, name: impl Into<String>, src: impl Into<String>) -> FileId {
         let id = self.files.len() as FileId;
-        self.files.push(SourceFile::new(id, name.into(), src.into()));
+        self.files
+            .push(SourceFile::new(id, name.into(), src.into()));
         id
     }
 

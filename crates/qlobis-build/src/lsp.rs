@@ -41,8 +41,11 @@ pub fn serve() -> i32 {
                         break;
                     }
                     "textDocument/didOpen" => {
-                        if let Some(uri) = get_path(&v, "textDocument", "uri") {
-                            let text = get_nested_str(&v, "textDocument", "text")
+                        if let Some(uri) = doc_uri(&v) {
+                            let text = v
+                                .get("params")
+                                .and_then(|p| p.get("textDocument"))
+                                .and_then(|d| get_str(d, "text"))
                                 .unwrap_or_default();
                             docs.insert(uri.clone(), text.clone());
                             let diags = analyze(&docs, &uri);
@@ -50,7 +53,7 @@ pub fn serve() -> i32 {
                         }
                     }
                     "textDocument/didChange" => {
-                        if let Some(uri) = get_path(&v, "textDocument", "uri") {
+                        if let Some(uri) = doc_uri(&v) {
                             if let Some(text) = first_change_text(&v) {
                                 docs.insert(uri.clone(), text.clone());
                                 let diags = analyze(&docs, &uri);
@@ -59,7 +62,7 @@ pub fn serve() -> i32 {
                         }
                     }
                     "textDocument/didSave" => {
-                        if let Some(uri) = get_path(&v, "textDocument", "uri") {
+                        if let Some(uri) = doc_uri(&v) {
                             let diags = analyze(&docs, &uri);
                             publish(&uri, &diags);
                         }
@@ -277,30 +280,22 @@ pub fn json_escape(s: &str) -> String {
 fn read_message(stdin: &mut impl Read) -> Option<String> {
     let mut header = Vec::new();
     let mut byte = [0u8; 1];
-    // Read until \r\n\r\n.
-    let mut state = 0;
     loop {
-        let n = stdin.read(&mut byte).ok()?;
-        if n == 0 {
+        if stdin.read(&mut byte).ok()? == 0 {
             return None;
         }
         header.push(byte[0]);
-        match byte[0] {
-            b'\r' if state == 0 || state == 2 => state += 1,
-            b'\n' if state == 1 => state += 1,
-            b'\r' if state == 3 => state = 1,
-            _ => state = 0,
-        }
-        if state == 3 {
-            state = 0;
-            // peek for final \n
+        if header.ends_with(b"\r\n\r\n") || header.ends_with(b"\n\n") {
             break;
         }
     }
     let header = String::from_utf8_lossy(&header).to_string();
     let mut len = 0usize;
     for line in header.lines() {
-        if let Some(v) = line.strip_prefix("Content-Length:") {
+        if let Some(v) = line
+            .strip_prefix("Content-Length:")
+            .or_else(|| line.strip_prefix("content-length:"))
+        {
             len = v.trim().parse().unwrap_or(0);
         }
     }
@@ -325,7 +320,10 @@ fn respond(id: Option<Json>, result: &str) {
         Some(Json::Str(s)) => format!("\"{}\"", json_escape(&s)),
         _ => "null".to_string(),
     };
-    send(&format!(r#"{{"jsonrpc":"2.0","id":{},"result":{}}}"#, id_text, result));
+    send(&format!(
+        r#"{{"jsonrpc":"2.0","id":{},"result":{}}}"#,
+        id_text, result
+    ));
 }
 
 fn publish(uri: &str, diagnostics: &str) {
@@ -340,12 +338,11 @@ fn get_str(v: &Json, key: &str) -> Option<String> {
     v.get(key).and_then(|j| j.as_str()).map(String::from)
 }
 
-fn get_path(v: &Json, a: &str, b: &str) -> Option<String> {
-    v.get(a).and_then(|j| get_str(j, b))
-}
-
-fn get_nested_str(v: &Json, a: &str, b: &str) -> Option<String> {
-    get_path(v, a, b)
+/// `params.textDocument.uri`.
+fn doc_uri(v: &Json) -> Option<String> {
+    v.get("params")
+        .and_then(|p| p.get("textDocument"))
+        .and_then(|d| get_str(d, "uri"))
 }
 
 fn first_change_text(v: &Json) -> Option<String> {
@@ -414,7 +411,7 @@ fn analyze(docs: &HashMap<String, String>, uri: &str) -> String {
 }
 
 fn hover(v: &Json, docs: &HashMap<String, String>) -> String {
-    let uri = match get_path(v, "params", "uri") {
+    let uri = match doc_uri(v) {
         Some(u) => u,
         None => return "null".to_string(),
     };
@@ -429,12 +426,12 @@ fn hover(v: &Json, docs: &HashMap<String, String>) -> String {
     };
     let (line, col) = match (params.get("position"),) {
         (Some(pos),) => (
-            get_str(pos, "line").and_then(|s| s.parse::<usize>().ok()).or_else(|| {
-                match pos.get("line") {
+            get_str(pos, "line")
+                .and_then(|s| s.parse::<usize>().ok())
+                .or_else(|| match pos.get("line") {
                     Some(Json::Num(n)) => Some(*n as usize),
                     _ => None,
-                }
-            }),
+                }),
             match pos.get("character") {
                 Some(Json::Num(n)) => Some(*n as usize),
                 _ => None,
@@ -486,7 +483,7 @@ fn hover(v: &Json, docs: &HashMap<String, String>) -> String {
 }
 
 fn document_symbols(v: &Json, docs: &HashMap<String, String>) -> String {
-    let uri = match get_path(v, "params", "uri") {
+    let uri = match doc_uri(v) {
         Some(u) => u,
         None => return "[]".to_string(),
     };
@@ -524,7 +521,7 @@ fn document_symbols(v: &Json, docs: &HashMap<String, String>) -> String {
 }
 
 fn formatting(v: &Json, docs: &HashMap<String, String>) -> String {
-    let uri = match get_path(v, "params", "uri") {
+    let uri = match doc_uri(v) {
         Some(u) => u,
         None => return "null".to_string(),
     };

@@ -102,7 +102,10 @@ pub fn resolve(deps: &[Dependency], registry: &Registry) -> Result<Vec<ResolvedD
         if let Some(path) = &dep.path {
             let root = PathBuf::from(path);
             if !root.exists() {
-                return Err(format!("dependency `{}`: path `{}` not found", dep.name, path));
+                return Err(format!(
+                    "dependency `{}`: path `{}` not found",
+                    dep.name, path
+                ));
             }
             out.push(ResolvedDep {
                 name: dep.name.clone(),

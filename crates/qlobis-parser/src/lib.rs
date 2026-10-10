@@ -50,7 +50,14 @@ impl<'a> Parser<'a> {
         docs: Vec<(u32, qlobis_lexer::DocComment)>,
         diags: &'a mut Diagnostics,
     ) -> Self {
-        Parser { file, tokens, pos: 0, docs, doc_idx: 0, diags }
+        Parser {
+            file,
+            tokens,
+            pos: 0,
+            docs,
+            doc_idx: 0,
+            diags,
+        }
     }
 
     // -- token helpers -----------------------------------------------------
@@ -89,13 +96,20 @@ impl<'a> Parser<'a> {
 
     fn expect(&mut self, t: Tok, what: &str) -> PResult<Token> {
         if std::mem::discriminant(self.peek()) == std::mem::discriminant(&t) {
-            Ok(Token { tok: self.bump(), span: self.prev_span() })
+            Ok(Token {
+                tok: self.bump(),
+                span: self.prev_span(),
+            })
         } else {
             let span = self.span();
             self.diags.push(
-                Diagnostic::error(format!("expected {}, found {}", what, self.peek().describe()))
-                    .code("E0200")
-                    .primary(span, format!("expected {}", what)),
+                Diagnostic::error(format!(
+                    "expected {}, found {}",
+                    what,
+                    self.peek().describe()
+                ))
+                .code("E0200")
+                .primary(span, format!("expected {}", what)),
             );
             Err(())
         }
@@ -127,12 +141,16 @@ impl<'a> Parser<'a> {
     }
 
     fn error(&mut self, msg: impl Into<String>, span: Span) {
-        self.diags.push(Diagnostic::error(msg).code("E0201").primary(span, "here"));
+        self.diags
+            .push(Diagnostic::error(msg).code("E0201").primary(span, "here"));
     }
 
     fn error_help(&mut self, msg: impl Into<String>, span: Span, help: String) {
         self.diags.push(
-            Diagnostic::error(msg).code("E0201").primary(span, "here").help(help),
+            Diagnostic::error(msg)
+                .code("E0201")
+                .primary(span, "here")
+                .help(help),
         );
     }
 
@@ -168,7 +186,11 @@ impl<'a> Parser<'a> {
                 }
             }
         }
-        Program { imports, items, file: self.file }
+        Program {
+            imports,
+            items,
+            file: self.file,
+        }
     }
 
     /// Skip tokens until the start of the next likely item.
@@ -238,10 +260,7 @@ impl<'a> Parser<'a> {
                             other => {
                                 let sp = self.span();
                                 self.error(
-                                    format!(
-                                        "expected target name, found {}",
-                                        other.describe()
-                                    ),
+                                    format!("expected target name, found {}", other.describe()),
                                     sp,
                                 );
                                 return Err(());
@@ -252,10 +271,7 @@ impl<'a> Parser<'a> {
                             self.error_help(
                                 format!("unknown target `{}`", name),
                                 sp,
-                                format!(
-                                    "valid targets are: {}",
-                                    valid.join(", ")
-                                ),
+                                format!("valid targets are: {}", valid.join(", ")),
                             );
                             return Err(());
                         }
@@ -432,7 +448,12 @@ impl<'a> Parser<'a> {
                 self.expect(Tok::Colon, "`:` after parameter name")?;
                 let ty = self.parse_type()?;
                 let span = start.merge(self.prev_span());
-                params.push(Param { name, ty: Some(ty), is_self: false, span });
+                params.push(Param {
+                    name,
+                    ty: Some(ty),
+                    is_self: false,
+                    span,
+                });
             }
             if matches!(self.peek(), Tok::Comma) {
                 self.bump();
@@ -616,7 +637,11 @@ impl<'a> Parser<'a> {
                 self.expect(Tok::Arrow, "`->` in function type")?;
                 let ret = self.parse_type()?;
                 let span = start.merge(self.prev_span());
-                Ok(TypeExpr::Fn { params, ret: Box::new(ret), span })
+                Ok(TypeExpr::Fn {
+                    params,
+                    ret: Box::new(ret),
+                    span,
+                })
             }
             Tok::Ident(name) => {
                 self.bump();
@@ -668,7 +693,10 @@ impl<'a> Parser<'a> {
                 }
             }
         }
-        Ok(Block { stmts, span: start.merge(self.prev_span()) })
+        Ok(Block {
+            stmts,
+            span: start.merge(self.prev_span()),
+        })
     }
 
     fn parse_stmt(&mut self) -> PResult<Stmt> {
@@ -723,12 +751,18 @@ impl<'a> Parser<'a> {
                 } else {
                     None
                 };
-                Ok(Stmt::Return { value, span: start.merge(self.prev_span()) })
+                Ok(Stmt::Return {
+                    value,
+                    span: start.merge(self.prev_span()),
+                })
             }
             Tok::Throw => {
                 self.bump();
                 let value = self.parse_expr()?;
-                Ok(Stmt::Throw { value, span: start.merge(self.prev_span()) })
+                Ok(Stmt::Throw {
+                    value,
+                    span: start.merge(self.prev_span()),
+                })
             }
             Tok::Try => {
                 self.bump();
@@ -758,11 +792,15 @@ impl<'a> Parser<'a> {
             }
             Tok::Break => {
                 self.bump();
-                Ok(Stmt::Break { span: start.merge(self.prev_span()) })
+                Ok(Stmt::Break {
+                    span: start.merge(self.prev_span()),
+                })
             }
             Tok::Continue => {
                 self.bump();
-                Ok(Stmt::Continue { span: start.merge(self.prev_span()) })
+                Ok(Stmt::Continue {
+                    span: start.merge(self.prev_span()),
+                })
             }
             Tok::LBrace => {
                 let b = self.parse_block()?;
@@ -809,7 +847,10 @@ impl<'a> Parser<'a> {
                             span: start.merge(self.prev_span()),
                         })
                     } else {
-                        Ok(Stmt::Expr { expr, span: start.merge(self.prev_span()) })
+                        Ok(Stmt::Expr {
+                            expr,
+                            span: start.merge(self.prev_span()),
+                        })
                     }
                 }
             }
@@ -1048,25 +1089,40 @@ impl<'a> Parser<'a> {
                 self.bump();
                 let expr = self.parse_unary()?;
                 let span = start.merge(expr.span());
-                Ok(Expr::Unary { op: UnOp::Neg, expr: Box::new(expr), span })
+                Ok(Expr::Unary {
+                    op: UnOp::Neg,
+                    expr: Box::new(expr),
+                    span,
+                })
             }
             Tok::Not | Tok::Bang => {
                 self.bump();
                 let expr = self.parse_unary()?;
                 let span = start.merge(expr.span());
-                Ok(Expr::Unary { op: UnOp::Not, expr: Box::new(expr), span })
+                Ok(Expr::Unary {
+                    op: UnOp::Not,
+                    expr: Box::new(expr),
+                    span,
+                })
             }
             Tok::Tilde => {
                 self.bump();
                 let expr = self.parse_unary()?;
                 let span = start.merge(expr.span());
-                Ok(Expr::Unary { op: UnOp::BitNot, expr: Box::new(expr), span })
+                Ok(Expr::Unary {
+                    op: UnOp::BitNot,
+                    expr: Box::new(expr),
+                    span,
+                })
             }
             Tok::Await => {
                 self.bump();
                 let expr = self.parse_unary()?;
                 let span = start.merge(expr.span());
-                Ok(Expr::Await { expr: Box::new(expr), span })
+                Ok(Expr::Await {
+                    expr: Box::new(expr),
+                    span,
+                })
             }
             _ => self.parse_postfix(),
         }
@@ -1080,7 +1136,11 @@ impl<'a> Parser<'a> {
                     self.bump();
                     let args = self.parse_args()?;
                     let span = expr.span().merge(self.prev_span());
-                    expr = Expr::Call { func: Box::new(expr), args, span };
+                    expr = Expr::Call {
+                        func: Box::new(expr),
+                        args,
+                        span,
+                    };
                 }
                 Tok::LBracket => {
                     self.bump();
@@ -1252,12 +1312,7 @@ impl<'a> Parser<'a> {
 
 /// Parse a standalone expression from `src` (used for string interpolation).
 /// Spans are shifted by `span.start` so they point into the enclosing file.
-fn parse_expr_from(
-    file: FileId,
-    src: &str,
-    span: Span,
-    diags: &mut Diagnostics,
-) -> PResult<Expr> {
+fn parse_expr_from(file: FileId, src: &str, span: Span, diags: &mut Diagnostics) -> PResult<Expr> {
     let lexed = lex(file, src, span.start, diags);
     let mut sub = Parser::new(file, lexed.tokens, lexed.docs, diags);
     let expr = sub.parse_expr()?;
@@ -1277,11 +1332,17 @@ mod tests {
         let mut d = Diagnostics::new();
         let p = parse_file(0, src, &mut d);
         if d.has_errors() {
-            panic!("parse errors: {}", d.render(&{
-                let mut m = SourceMap::new();
-                m.add_file("t.qbs", src);
-                m
-            }, false));
+            panic!(
+                "parse errors: {}",
+                d.render(
+                    &{
+                        let mut m = SourceMap::new();
+                        m.add_file("t.qbs", src);
+                        m
+                    },
+                    false
+                )
+            );
         }
         p
     }
@@ -1295,7 +1356,8 @@ mod tests {
 
     #[test]
     fn parse_main_and_imports() {
-        let p = parse_ok("@module.import(\"std::io\")\n\ndefin main() {\n  io.println(\"hi\")\n}\n");
+        let p =
+            parse_ok("@module.import(\"std::io\")\n\ndefin main() {\n  io.println(\"hi\")\n}\n");
         assert_eq!(p.imports.len(), 1);
         assert_eq!(p.imports[0].path, "std::io");
         assert_eq!(p.items.len(), 1);
@@ -1345,8 +1407,12 @@ mod tests {
              impl Point {\n  defin sum(self) -> int {\n    return self.x + self.y\n  }\n}\n",
         );
         assert_eq!(p.items.len(), 4);
-        assert!(matches!(&p.items[0], Item::Struct(s) if s.name.name == "Point" && s.fields.len() == 2));
-        assert!(matches!(&p.items[1], Item::Trait(t) if t.name.name == "Shape" && t.methods.len() == 1));
+        assert!(
+            matches!(&p.items[0], Item::Struct(s) if s.name.name == "Point" && s.fields.len() == 2)
+        );
+        assert!(
+            matches!(&p.items[1], Item::Trait(t) if t.name.name == "Shape" && t.methods.len() == 1)
+        );
         match &p.items[2] {
             Item::Impl(i) => {
                 assert_eq!(i.trait_name.as_ref().unwrap().name, "Shape");
@@ -1375,12 +1441,18 @@ mod tests {
 
     #[test]
     fn parse_interpolation() {
-        let p = parse_ok("defin main() {\n  let name = \"qlobis\"\n  let msg = \"hello {name}!\"\n}\n");
+        let p =
+            parse_ok("defin main() {\n  let name = \"qlobis\"\n  let msg = \"hello {name}!\"\n}\n");
         match &p.items[0] {
             Item::Func(f) => match &f.body.as_ref().unwrap().stmts[1] {
-                Stmt::Let { value: Expr::Str(parts, ..), .. } => {
+                Stmt::Let {
+                    value: Expr::Str(parts, ..),
+                    ..
+                } => {
                     assert_eq!(parts.len(), 3);
-                    assert!(matches!(&parts[1], StrPart::Interp(Expr::Ident(i)) if i.name == "name"));
+                    assert!(
+                        matches!(&parts[1], StrPart::Interp(Expr::Ident(i)) if i.name == "name")
+                    );
                 }
                 other => panic!("{:?}", other),
             },
@@ -1411,9 +1483,23 @@ mod tests {
         match &p.items[0] {
             Item::Func(f) => {
                 let stmts = &f.body.as_ref().unwrap().stmts;
-                assert!(matches!(&stmts[0], Stmt::Let { value: Expr::Map(e, ..), .. } if e.len() == 2));
-                assert!(matches!(&stmts[1], Stmt::Let { value: Expr::Index { .. }, .. }));
-                assert!(matches!(&stmts[2], Stmt::Let { value: Expr::Call { .. }, .. }));
+                assert!(
+                    matches!(&stmts[0], Stmt::Let { value: Expr::Map(e, ..), .. } if e.len() == 2)
+                );
+                assert!(matches!(
+                    &stmts[1],
+                    Stmt::Let {
+                        value: Expr::Index { .. },
+                        ..
+                    }
+                ));
+                assert!(matches!(
+                    &stmts[2],
+                    Stmt::Let {
+                        value: Expr::Call { .. },
+                        ..
+                    }
+                ));
             }
             other => panic!("{:?}", other),
         }
@@ -1435,7 +1521,8 @@ mod tests {
 
     #[test]
     fn docs_attach_to_items() {
-        let p = parse_ok("/// Adds numbers.\ndefin add(a: int, b: int) -> int {\n  return a + b\n}\n");
+        let p =
+            parse_ok("/// Adds numbers.\ndefin add(a: int, b: int) -> int {\n  return a + b\n}\n");
         match &p.items[0] {
             Item::Func(f) => assert_eq!(f.doc, vec!["Adds numbers.".to_string()]),
             other => panic!("{:?}", other),

@@ -1,0 +1,12 @@
+# Qlobis package registry.
+#
+# `qlobis add <name>` looks a package up here when no `git`/`path` is given,
+# then clones it into the local cache (`~/.qlobis/registry/`, or
+# $QLOBIS_HOME). `qlobis publish` records a package after it builds.
+
+[packages]
+# Every entry needs `git`; `tag`/`rev` pin a version.
+#
+# textkit = { git = "https://github.com/qlobis-community/textkit", tag = "v1.2.0", description = "text formatting and templating" }
+# geometry = { git = "https://github.com/qlobis-community/geometry", tag = "v0.3.1", description = "points, vectors, and shapes" }
+# jsonkit = { git = "https://github.com/qlobis-community/jsonkit", rev = "8f31c2a", description = "JSON parsing and writing" }

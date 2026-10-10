@@ -1,0 +1,32 @@
+# Qlobis project configuration.
+#
+# Build with `qlobis build`, run with `qlobis run`, typecheck with
+# `qlobis check`. Outputs land in `qlob/` per target.
+
+[package]
+name = "qlobis-demo"
+version = "0.1.0"
+
+# Targets to compile: python, php, web, kotlin (mobile), native.
+[targets]
+python = true
+php = true
+web = true
+kotlin = true
+native = true
+
+[build]
+# Source directories, walked recursively for `.qbs` files.
+sources = ["examples/src"]
+# Bundled standard library (modules `std::io`, `std::fs`, ...).
+stdlib = "stdlib"
+# Output root.
+output = "qlob"
+# `debug` or `release` (affects native optimization and codegen hints).
+profile = "debug"
+
+# Third-party packages (from qlobregistry.toml or explicit sources).
+[dependencies]
+# textkit = { tag = "v1.2.0" }             # resolved through the registry
+# geometry = { git = "https://github.com/you/geometry", tag = "v0.3" }
+# localpkg = { path = "packages/localpkg" } # in-tree dependency

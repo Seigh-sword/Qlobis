@@ -102,8 +102,21 @@ pub fn builtin_method_names(recv: &Type) -> Vec<&'static str> {
     use Type::*;
     match recv {
         Str => vec![
-            "len", "trim", "upper", "lower", "split", "replace", "contains", "starts_with",
-            "ends_with", "substring", "char_at", "repeat", "index_of", "to_str", "to_int",
+            "len",
+            "trim",
+            "upper",
+            "lower",
+            "split",
+            "replace",
+            "contains",
+            "starts_with",
+            "ends_with",
+            "substring",
+            "char_at",
+            "repeat",
+            "index_of",
+            "to_str",
+            "to_int",
             "to_float",
         ],
         Int => vec!["to_str", "to_float", "abs"],
@@ -114,7 +127,15 @@ pub fn builtin_method_names(recv: &Type) -> Vec<&'static str> {
             "join", "slice", "reverse", "sort", "clear", "to_str",
         ],
         Map(_, _) => vec![
-            "len", "get", "get_or", "put", "remove", "contains_key", "keys", "values", "clear",
+            "len",
+            "get",
+            "get_or",
+            "put",
+            "remove",
+            "contains_key",
+            "keys",
+            "values",
+            "clear",
             "to_str",
         ],
         Any => vec![],
@@ -187,7 +208,12 @@ pub fn intrinsic(name: &str) -> Option<IntrinsicSig> {
         "__thread_count" => (vec![], Int, TargetMask::ALL),
         _ => return None,
     };
-    Some(IntrinsicSig { name: name.to_string(), params, ret, targets })
+    Some(IntrinsicSig {
+        name: name.to_string(),
+        params,
+        ret,
+        targets,
+    })
 }
 
 /// Metadata-only listing of intrinsic names (for docs and linting).
@@ -255,7 +281,13 @@ mod tests {
     fn intrinsics_known() {
         assert!(intrinsic("__println").is_some());
         assert!(intrinsic("__nope").is_none());
-        assert!(intrinsic("__web_display").unwrap().targets.supports(TargetMask::WEB));
-        assert!(!intrinsic("__web_display").unwrap().targets.supports(TargetMask::PYTHON));
+        assert!(intrinsic("__web_display")
+            .unwrap()
+            .targets
+            .supports(TargetMask::WEB));
+        assert!(!intrinsic("__web_display")
+            .unwrap()
+            .targets
+            .supports(TargetMask::PYTHON));
     }
 }

@@ -209,10 +209,12 @@ fn cmd_run(args: &[String]) -> i32 {
         Err(e) => return fail(&e),
     };
     let target = opts.target.unwrap_or(Target::Python);
-    let (cfg, prog, _) = match load(&opts) {
+    let (mut cfg, prog, _) = match load(&opts) {
         Ok(x) => x,
         Err(e) => return fail(&e),
     };
+    // `run` builds only the target it executes.
+    cfg.targets = vec![target];
     match qlobis_build::run(&cfg, &prog, target) {
         Ok(code) => code,
         Err(e) => fail(&e),
@@ -229,11 +231,7 @@ fn cmd_check(args: &[String]) -> i32 {
         Err(e) => return fail(&e),
     };
     let _ = qlobis_build::check_only(&cfg, &prog);
-    println!(
-        "{} checked {} module(s)",
-        green("ok:"),
-        prog.modules.len()
-    );
+    println!("{} checked {} module(s)", green("ok:"), prog.modules.len());
     0
 }
 
@@ -249,11 +247,7 @@ fn cmd_new(args: &[String]) -> i32 {
     if let Err(e) = make_project(&root, &name) {
         return fail(&e);
     }
-    println!(
-        "{} created project `{}`",
-        green("ok:"),
-        name
-    );
+    println!("{} created project `{}`", green("ok:"), name);
     println!("  cd {} && qlobis run", name);
     0
 }
@@ -314,7 +308,9 @@ fn cmd_add(args: &[String]) -> i32 {
     } else {
         src.push_str(&format!("\n[dependencies]\n{}", entry));
     }
-    std::fs::write(&cfg_path, &src).map_err(|e| e.to_string()).unwrap();
+    std::fs::write(&cfg_path, &src)
+        .map_err(|e| e.to_string())
+        .unwrap();
     // Fetch now so the cache is warm and errors surface early.
     let cfg = match config::load_config(&opts.root) {
         Ok(c) => c,

@@ -10,7 +10,10 @@ pub struct Ident {
 
 impl Ident {
     pub fn new(name: impl Into<String>, span: Span) -> Self {
-        Ident { name: name.into(), span }
+        Ident {
+            name: name.into(),
+            span,
+        }
     }
 }
 
@@ -19,9 +22,17 @@ impl Ident {
 #[derive(Clone, Debug)]
 pub enum TypeExpr {
     /// `int`, `list<T>`, `map<K, V>`, user types, generic parameters...
-    Named { name: String, args: Vec<TypeExpr>, span: Span },
+    Named {
+        name: String,
+        args: Vec<TypeExpr>,
+        span: Span,
+    },
     /// `fn(T1, T2) -> R`
-    Fn { params: Vec<TypeExpr>, ret: Box<TypeExpr>, span: Span },
+    Fn {
+        params: Vec<TypeExpr>,
+        ret: Box<TypeExpr>,
+        span: Span,
+    },
 }
 
 impl TypeExpr {
@@ -32,7 +43,11 @@ impl TypeExpr {
     }
 
     pub fn named(name: impl Into<String>, span: Span) -> Self {
-        TypeExpr::Named { name: name.into(), args: Vec::new(), span }
+        TypeExpr::Named {
+            name: name.into(),
+            args: Vec::new(),
+            span,
+        }
     }
 }
 
@@ -303,7 +318,10 @@ impl BinOp {
     }
 
     pub fn is_bitwise(self) -> bool {
-        matches!(self, BinOp::BitAnd | BinOp::BitOr | BinOp::BitXor | BinOp::Shl | BinOp::Shr)
+        matches!(
+            self,
+            BinOp::BitAnd | BinOp::BitOr | BinOp::BitXor | BinOp::Shl | BinOp::Shr
+        )
     }
 }
 
@@ -386,7 +404,10 @@ impl Expr {
 
     /// True when the expression can appear on the left of `=`.
     pub fn is_lvalue(&self) -> bool {
-        matches!(self, Expr::Ident(_) | Expr::Member { .. } | Expr::Index { .. })
+        matches!(
+            self,
+            Expr::Ident(_) | Expr::Member { .. } | Expr::Index { .. }
+        )
     }
 }
 
@@ -400,13 +421,20 @@ pub fn type_expr_to_string(t: &TypeExpr) -> String {
                 format!(
                     "{}<{}>",
                     name,
-                    args.iter().map(type_expr_to_string).collect::<Vec<_>>().join(", ")
+                    args.iter()
+                        .map(type_expr_to_string)
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 )
             }
         }
         TypeExpr::Fn { params, ret, .. } => format!(
             "fn({}) -> {}",
-            params.iter().map(type_expr_to_string).collect::<Vec<_>>().join(", "),
+            params
+                .iter()
+                .map(type_expr_to_string)
+                .collect::<Vec<_>>()
+                .join(", "),
             type_expr_to_string(ret)
         ),
     }

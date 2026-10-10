@@ -255,11 +255,7 @@ localx = "libs/localx"
 
     #[test]
     fn defaults_when_minimal() {
-        let cfg = parse_config(
-            "[package]\nname = \"x\"\n",
-            Path::new("/p"),
-        )
-        .unwrap();
+        let cfg = parse_config("[package]\nname = \"x\"\n", Path::new("/p")).unwrap();
         assert_eq!(cfg.sources, vec!["src"]);
         assert_eq!(cfg.targets, vec![Target::Python]);
         assert_eq!(cfg.profile, Profile::Debug);

@@ -60,9 +60,7 @@ impl Type {
                     && ar.coerces_to(br)
             }
             (Type::Struct(an, aa), Type::Struct(bn, ba)) => {
-                an == bn
-                    && aa.len() == ba.len()
-                    && aa.iter().zip(ba).all(|(a, b)| a.coerces_to(b))
+                an == bn && aa.len() == ba.len() && aa.iter().zip(ba).all(|(a, b)| a.coerces_to(b))
             }
             _ => false,
         }
@@ -142,7 +140,14 @@ impl fmt::Display for Type {
             Type::Struct(name, args) => {
                 write!(f, "{}", name)?;
                 if !args.is_empty() {
-                    write!(f, "<{}>", args.iter().map(|a| a.to_string()).collect::<Vec<_>>().join(", "))?;
+                    write!(
+                        f,
+                        "<{}>",
+                        args.iter()
+                            .map(|a| a.to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )?;
                 }
                 Ok(())
             }
@@ -162,7 +167,8 @@ mod tests {
         assert!(Type::Any.coerces_to(&Type::Str));
         assert!(Type::Str.coerces_to(&Type::Any));
         assert!(Type::list(Type::Int).coerces_to(&Type::list(Type::Float)));
-        assert!(Type::func(vec![Type::Any], Type::Int).coerces_to(&Type::func(vec![Type::Str], Type::Float)));
+        assert!(Type::func(vec![Type::Any], Type::Int)
+            .coerces_to(&Type::func(vec![Type::Str], Type::Float)));
     }
 
     #[test]

@@ -11,16 +11,90 @@ use qlobis_ast::*;
 use qlobis_tyck::{ModuleInput, Target};
 
 const KT_RESERVED: &[&str] = &[
-    "as", "break", "class", "continue", "do", "else", "false", "for", "fun", "if", "in",
-    "interface", "is", "null", "object", "package", "return", "super", "this", "throw",
-    "true", "try", "typealias", "typeof", "val", "var", "when", "while", "by", "catch",
-    "constructor", "delegate", "dynamic", "field", "file", "finally", "get", "import",
-    "init", "param", "property", "receiver", "set", "setparam", "where", "actual",
-    "abstract", "annotation", "companion", "const", "crossinline", "data", "enum",
-    "expect", "external", "final", "infix", "inline", "inner", "internal", "lateinit",
-    "noinline", "open", "operator", "out", "override", "private", "protected", "public",
-    "reified", "sealed", "suspend", "tailrec", "vararg", "println", "print", "list",
-    "map", "string", "int", "float", "bool", "long", "double",
+    "as",
+    "break",
+    "class",
+    "continue",
+    "do",
+    "else",
+    "false",
+    "for",
+    "fun",
+    "if",
+    "in",
+    "interface",
+    "is",
+    "null",
+    "object",
+    "package",
+    "return",
+    "super",
+    "this",
+    "throw",
+    "true",
+    "try",
+    "typealias",
+    "typeof",
+    "val",
+    "var",
+    "when",
+    "while",
+    "by",
+    "catch",
+    "constructor",
+    "delegate",
+    "dynamic",
+    "field",
+    "file",
+    "finally",
+    "get",
+    "import",
+    "init",
+    "param",
+    "property",
+    "receiver",
+    "set",
+    "setparam",
+    "where",
+    "actual",
+    "abstract",
+    "annotation",
+    "companion",
+    "const",
+    "crossinline",
+    "data",
+    "enum",
+    "expect",
+    "external",
+    "final",
+    "infix",
+    "inline",
+    "inner",
+    "internal",
+    "lateinit",
+    "noinline",
+    "open",
+    "operator",
+    "out",
+    "override",
+    "private",
+    "protected",
+    "public",
+    "reified",
+    "sealed",
+    "suspend",
+    "tailrec",
+    "vararg",
+    "println",
+    "print",
+    "list",
+    "map",
+    "string",
+    "int",
+    "float",
+    "bool",
+    "long",
+    "double",
 ];
 
 fn kt_name(name: &str) -> String {
@@ -32,7 +106,9 @@ fn kt_name(name: &str) -> String {
 }
 
 fn stem(path: &str) -> String {
-    path.replace("::", "__").replace('/', "__").replace('-', "_")
+    path.replace("::", "__")
+        .replace('/', "__")
+        .replace('-', "_")
 }
 
 fn pkg(path: &str) -> String {
@@ -168,13 +244,19 @@ fn kt_type(t: &Type, ctx: &Ctx) -> String {
                 format!(
                     "{}<{}>",
                     base,
-                    args.iter().map(|a| kt_type(a, ctx)).collect::<Vec<_>>().join(", ")
+                    args.iter()
+                        .map(|a| kt_type(a, ctx))
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 )
             }
         }
         Type::Fn(ps, r) => format!(
             "({}) -> {}",
-            ps.iter().map(|p| kt_type(p, ctx)).collect::<Vec<_>>().join(", "),
+            ps.iter()
+                .map(|p| kt_type(p, ctx))
+                .collect::<Vec<_>>()
+                .join(", "),
             kt_type(r, ctx)
         ),
         _ => "Any".to_string(),
@@ -251,11 +333,10 @@ fn emit_func(ctx: &mut Ctx, f: &FuncDef, owner: Option<String>) {
         if p.is_self {
             continue;
         }
-        let ty = p
-            .ty
-            .as_ref()
-            .map(|t| kt_type(&ctx.checked.type_of(t.span()), ctx))
-            .unwrap_or_else(|| "Any".to_string());
+        let ty =
+            p.ty.as_ref()
+                .map(|t| kt_type(&ctx.checked.type_of(t.span()), ctx))
+                .unwrap_or_else(|| "Any".to_string());
         params.push(format!("{}: {}", kt_name(&p.name.name), ty));
         ctx.scope.declare(&p.name.name);
     }
@@ -265,7 +346,11 @@ fn emit_func(ctx: &mut Ctx, f: &FuncDef, owner: Option<String>) {
         .map(|t| kt_type(&ctx.checked.type_of(t.span()), ctx))
         .unwrap_or_else(|| "Unit".to_string());
     let prefix = if f.is_async { "suspend " } else { "" };
-    let ret_part = if f.ret.is_none() { String::new() } else { format!(": {}", ret) };
+    let ret_part = if f.ret.is_none() {
+        String::new()
+    } else {
+        format!(": {}", ret)
+    };
     if owner.is_some() {
         ctx.line(&format!(
             "{}fun {}({}){} {{",
@@ -306,7 +391,9 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
             ctx.scope.declare(&name.name);
             ctx.line(&format!("val {} = {}", kt_name(&name.name), v));
         }
-        Stmt::Assign { target, op, value, .. } => {
+        Stmt::Assign {
+            target, op, value, ..
+        } => {
             let t = emit_expr(ctx, target);
             let v = emit_expr(ctx, value);
             match op {
@@ -314,7 +401,12 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
                 None => ctx.line(&format!("{} = {}", t, v)),
             }
         }
-        Stmt::If { cond, then, otherwise, .. } => {
+        Stmt::If {
+            cond,
+            then,
+            otherwise,
+            ..
+        } => {
             let c = emit_expr(ctx, cond);
             ctx.line(&format!("if ({}) {{", c));
             emit_block(ctx, &then.stmts);
@@ -333,7 +425,9 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
             emit_block(ctx, &body.stmts);
             ctx.line("}");
         }
-        Stmt::For { var, iter, body, .. } => {
+        Stmt::For {
+            var, iter, body, ..
+        } => {
             let it = emit_expr(ctx, iter);
             let it_ty = ctx.ty(iter);
             let coll = match &it_ty {
@@ -390,7 +484,10 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
             ctx.line("}");
         }
         Stmt::Expr { expr, .. } => {
-            if let Expr::Method { recv, name, args, .. } = expr {
+            if let Expr::Method {
+                recv, name, args, ..
+            } = expr
+            {
                 if matches!(name.name.as_str(), "set" | "put") && args.len() == 2 {
                     let r = emit_expr(ctx, recv);
                     let k = emit_expr(ctx, &args[0]);
@@ -440,7 +537,12 @@ fn emit_expr(ctx: &mut Ctx, e: &Expr) -> String {
                 "this".to_string()
             } else if ctx.scope.contains(&id.name) {
                 kt_name(&id.name)
-            } else if ctx.checked.funcs.iter().any(|f| f.module == ctx.module && f.name == id.name) {
+            } else if ctx
+                .checked
+                .funcs
+                .iter()
+                .any(|f| f.module == ctx.module && f.name == id.name)
+            {
                 // Function reference (same module).
                 format!("::{}", kt_name(&id.name))
             } else {
@@ -491,7 +593,9 @@ fn emit_expr(ctx: &mut Ctx, e: &Expr) -> String {
             }
             format!("{}.{}", emit_expr(ctx, recv), name.name)
         }
-        Expr::Method { recv, name, args, .. } => emit_method(ctx, recv.as_ref(), name, args),
+        Expr::Method {
+            recv, name, args, ..
+        } => emit_method(ctx, recv.as_ref(), name, args),
         Expr::Call { func, args, .. } => emit_call(ctx, func.as_ref(), args),
     }
 }
@@ -602,7 +706,12 @@ fn emit_call(ctx: &mut Ctx, func: &Expr, args: &[Expr]) -> String {
                     }
                 }
             }
-            format!("{}.{}({})", emit_expr(ctx, recv), name.name, argv.join(", "))
+            format!(
+                "{}.{}({})",
+                emit_expr(ctx, recv),
+                name.name,
+                argv.join(", ")
+            )
         }
         other => {
             let callee = emit_expr(ctx, other);
@@ -678,7 +787,12 @@ fn emit_method(ctx: &mut Ctx, recv: &Expr, name: &Ident, args: &[Expr]) -> Strin
         return format!("{}.{}({})", r, name.name, argv.join(", "));
     }
     if matches!(rt, Type::Any | Type::Var(_)) {
-        return format!("QR.method({}, \"{}\", listOf({}))", r, name.name, argv.join(", "));
+        return format!(
+            "QR.method({}, \"{}\", listOf({}))",
+            r,
+            name.name,
+            argv.join(", ")
+        );
     }
     match (&rt, name.name.as_str()) {
         (Type::Str, "len") => format!("{}.length.toLong()", r),
@@ -717,7 +831,12 @@ fn emit_method(ctx: &mut Ctx, recv: &Expr, name: &Ident, args: &[Expr]) -> Strin
         (Type::List(_), "contains") => format!("QR.eq({}, {})", r, a(0)),
         (Type::List(_), "index_of") => format!("QR.listIndexOf({}, {})", r, a(0)),
         (Type::List(_), "join") => format!("{}.joinToString({}) {{ QR.toStr(it) }}", r, a(0)),
-        (Type::List(_), "slice") => format!("{}.subList({}.toInt(), {}.toInt()).toMutableList()", r, a(0), a(1)),
+        (Type::List(_), "slice") => format!(
+            "{}.subList({}.toInt(), {}.toInt()).toMutableList()",
+            r,
+            a(0),
+            a(1)
+        ),
         (Type::List(_), "reverse") => format!("QR.listReverse({})", r),
         (Type::List(_), "sort") => format!("QR.listSort({})", r),
         (Type::List(_), "clear") => format!("{}.clear()", r),
@@ -732,7 +851,12 @@ fn emit_method(ctx: &mut Ctx, recv: &Expr, name: &Ident, args: &[Expr]) -> Strin
         (Type::Map(..), "values") => format!("{}.values.toMutableList()", r),
         (Type::Map(..), "clear") => format!("{}.clear()", r),
         (Type::Map(..), "to_str") => format!("QR.mapToStr({})", r),
-        _ => format!("QR.method({}, \"{}\", listOf({}))", r, name.name, argv.join(", ")),
+        _ => format!(
+            "QR.method({}, \"{}\", listOf({}))",
+            r,
+            name.name,
+            argv.join(", ")
+        ),
     }
 }
 

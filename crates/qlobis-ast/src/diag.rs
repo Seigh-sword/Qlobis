@@ -39,11 +39,19 @@ pub struct Label {
 
 impl Label {
     pub fn primary(span: Span, message: impl Into<String>) -> Self {
-        Label { span, message: message.into(), primary: true }
+        Label {
+            span,
+            message: message.into(),
+            primary: true,
+        }
     }
 
     pub fn secondary(span: Span, message: impl Into<String>) -> Self {
-        Label { span, message: message.into(), primary: false }
+        Label {
+            span,
+            message: message.into(),
+            primary: false,
+        }
     }
 }
 
@@ -142,7 +150,10 @@ impl Diagnostics {
     }
 
     pub fn warning_count(&self) -> usize {
-        self.items.iter().filter(|d| d.severity == Severity::Warning).count()
+        self.items
+            .iter()
+            .filter(|d| d.severity == Severity::Warning)
+            .count()
     }
 
     pub fn has_errors(&self) -> bool {
@@ -341,11 +352,7 @@ fn render_diagnostic(d: &Diagnostic, map: &SourceMap, color: bool) -> String {
 /// Format `error: ...` style one-liners (used by the CLI for aggregated
 /// build-failure summaries).
 pub fn render_message(sev: Severity, message: &str, color: bool) -> String {
-    format!(
-        "{}: {}",
-        paint(sev.color(), color, sev.as_str()),
-        message
-    )
+    format!("{}: {}", paint(sev.color(), color, sev.as_str()), message)
 }
 
 /// Levenshtein distance, used for `did you mean` suggestions.
@@ -416,8 +423,14 @@ mod tests {
     #[test]
     fn suggest_close_names() {
         let names = ["println", "print_line", "read_file"];
-        assert_eq!(suggest_name("println", names.iter().copied()), Some("println"));
-        assert_eq!(suggest_name("prinln", names.iter().copied()), Some("println"));
+        assert_eq!(
+            suggest_name("println", names.iter().copied()),
+            Some("println")
+        );
+        assert_eq!(
+            suggest_name("prinln", names.iter().copied()),
+            Some("println")
+        );
         assert_eq!(suggest_name("zzzzzzzz", names.iter().copied()), None);
     }
 }

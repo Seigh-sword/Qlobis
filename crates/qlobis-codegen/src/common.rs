@@ -38,11 +38,7 @@ pub fn import_map(m: &ModuleInput) -> Vec<(String, String)> {
 
 /// The variant of a function group that applies to `target`.
 #[allow(dead_code)]
-pub fn active_variant<'a>(
-    m: &'a ModuleInput,
-    name: &str,
-    target: Target,
-) -> Option<&'a FuncDef> {
+pub fn active_variant<'a>(m: &'a ModuleInput, name: &str, target: Target) -> Option<&'a FuncDef> {
     for item in &m.program.items {
         if let Item::Func(f) = item {
             if f.name.name == name && applies(f, target) {
@@ -61,7 +57,9 @@ pub struct Scope {
 
 impl Scope {
     pub fn new() -> Self {
-        Scope { frames: vec![Vec::new()] }
+        Scope {
+            frames: vec![Vec::new()],
+        }
     }
 
     pub fn push(&mut self) {
@@ -100,7 +98,12 @@ pub struct Ctx<'a> {
 }
 
 impl<'a> Ctx<'a> {
-    pub fn new(modules: &'a [ModuleInput], checked: &'a CheckOutput, target: Target, m: &ModuleInput) -> Self {
+    pub fn new(
+        modules: &'a [ModuleInput],
+        checked: &'a CheckOutput,
+        target: Target,
+        m: &ModuleInput,
+    ) -> Self {
         Ctx {
             modules,
             checked,
@@ -119,6 +122,7 @@ impl<'a> Ctx<'a> {
         self.checked.type_of(e.span())
     }
 
+    #[allow(dead_code)]
     pub fn ty_of(&self, span: Span) -> Type {
         self.checked.type_of(span)
     }
@@ -145,6 +149,7 @@ impl<'a> Ctx<'a> {
 }
 
 /// Should this name be emitted as a local reference?
+#[allow(dead_code)]
 pub fn is_local(ctx: &Ctx, name: &str) -> bool {
     ctx.scope.contains(name)
 }

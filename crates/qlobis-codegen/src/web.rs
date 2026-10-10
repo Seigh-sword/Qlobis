@@ -12,12 +12,59 @@ use qlobis_ast::*;
 use qlobis_tyck::{ModuleInput, Target};
 
 const JS_RESERVED: &[&str] = &[
-    "await", "break", "case", "catch", "class", "const", "continue", "debugger", "default",
-    "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for",
-    "function", "if", "implements", "import", "in", "instanceof", "interface", "let", "new",
-    "null", "package", "private", "protected", "public", "return", "static", "super",
-    "switch", "this", "throw", "true", "try", "typeof", "var", "void", "while", "with",
-    "yield", "let", "arguments", "eval", "undefined", "NaN", "window", "document",
+    "await",
+    "break",
+    "case",
+    "catch",
+    "class",
+    "const",
+    "continue",
+    "debugger",
+    "default",
+    "delete",
+    "do",
+    "else",
+    "enum",
+    "export",
+    "extends",
+    "false",
+    "finally",
+    "for",
+    "function",
+    "if",
+    "implements",
+    "import",
+    "in",
+    "instanceof",
+    "interface",
+    "let",
+    "new",
+    "null",
+    "package",
+    "private",
+    "protected",
+    "public",
+    "return",
+    "static",
+    "super",
+    "switch",
+    "this",
+    "throw",
+    "true",
+    "try",
+    "typeof",
+    "var",
+    "void",
+    "while",
+    "with",
+    "yield",
+    "let",
+    "arguments",
+    "eval",
+    "undefined",
+    "NaN",
+    "window",
+    "document",
 ];
 
 fn js_name(name: &str) -> String {
@@ -32,7 +79,10 @@ fn js_name(name: &str) -> String {
 fn flat(module: &str, name: &str) -> String {
     format!(
         "qlob_{}_{}",
-        module.replace("::", "__").replace('/', "__").replace('-', "_"),
+        module
+            .replace("::", "__")
+            .replace('/', "__")
+            .replace('-', "_"),
         js_name(name)
     )
 }
@@ -55,9 +105,15 @@ pub fn generate(input: &super::GenInput) -> Vec<GenFile> {
             emit_module(&mut out, m, input, typed);
         }
         if typed {
-            files.push(GenFile { path: "src/program.ts".to_string(), contents: out });
+            files.push(GenFile {
+                path: "src/program.ts".to_string(),
+                contents: out,
+            });
         } else {
-            files.push(GenFile { path: "js/program.js".to_string(), contents: out });
+            files.push(GenFile {
+                path: "js/program.js".to_string(),
+                contents: out,
+            });
         }
     }
 
@@ -267,11 +323,10 @@ fn emit_func(ctx: &mut Ctx, f: &FuncDef, owner: Option<String>, typed: bool) {
         if p.is_self {
             continue;
         }
-        let ty = p
-            .ty
-            .as_ref()
-            .map(|t| ts_type(&ctx.checked.type_of(t.span())))
-            .unwrap_or_else(|| "any".to_string());
+        let ty =
+            p.ty.as_ref()
+                .map(|t| ts_type(&ctx.checked.type_of(t.span())))
+                .unwrap_or_else(|| "any".to_string());
         if typed {
             params.push(format!("{}: {}", js_name(&p.name.name), ty));
         } else {
@@ -331,7 +386,9 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
             ctx.scope.declare(&name.name);
             ctx.line(&format!("let {} = {};", js_name(&name.name), v));
         }
-        Stmt::Assign { target, op, value, .. } => {
+        Stmt::Assign {
+            target, op, value, ..
+        } => {
             let t = emit_expr(ctx, target);
             let v = emit_expr(ctx, value);
             match op {
@@ -339,7 +396,12 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
                 None => ctx.line(&format!("{} = {};", t, v)),
             }
         }
-        Stmt::If { cond, then, otherwise, .. } => {
+        Stmt::If {
+            cond,
+            then,
+            otherwise,
+            ..
+        } => {
             let c = emit_expr(ctx, cond);
             ctx.line(&format!("if ({}) {{", c));
             emit_block(ctx, &then.stmts);
@@ -358,7 +420,9 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
             emit_block(ctx, &body.stmts);
             ctx.line("}");
         }
-        Stmt::For { var, iter, body, .. } => {
+        Stmt::For {
+            var, iter, body, ..
+        } => {
             let it = emit_expr(ctx, iter);
             let it_ty = ctx.ty(iter);
             let coll = match &it_ty {
@@ -366,7 +430,11 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
                 Type::Str => format!("Array.from({})", it),
                 _ => it,
             };
-            ctx.line(&format!("for (const {} of {}) {{", js_name(&var.name), coll));
+            ctx.line(&format!(
+                "for (const {} of {}) {{",
+                js_name(&var.name),
+                coll
+            ));
             ctx.scope.push();
             ctx.scope.declare(&var.name);
             emit_block(ctx, &body.stmts);
@@ -393,7 +461,10 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
                 ctx.line(&format!(
                     "const {} = String({} && {}.message !== undefined ? {}.message : {});",
                     js_name(&c.name.name),
-                    exc, exc, exc, exc
+                    exc,
+                    exc,
+                    exc,
+                    exc
                 ));
                 ctx.scope.push();
                 ctx.scope.declare(&c.name.name);
@@ -412,7 +483,10 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
             ctx.line("}");
         }
         Stmt::Expr { expr, .. } => {
-            if let Expr::Method { recv, name, args, .. } = expr {
+            if let Expr::Method {
+                recv, name, args, ..
+            } = expr
+            {
                 if matches!(name.name.as_str(), "set" | "put") && args.len() == 2 {
                     let r = emit_expr(ctx, recv);
                     let k = emit_expr(ctx, &args[0]);
@@ -516,7 +590,9 @@ fn emit_expr(ctx: &mut Ctx, e: &Expr) -> String {
             }
             format!("{}.{}", emit_expr(ctx, recv), name.name)
         }
-        Expr::Method { recv, name, args, .. } => emit_method(ctx, recv.as_ref(), name, args),
+        Expr::Method {
+            recv, name, args, ..
+        } => emit_method(ctx, recv.as_ref(), name, args),
         Expr::Call { func, args, .. } => emit_call(ctx, func.as_ref(), args),
     }
 }
@@ -609,7 +685,11 @@ fn emit_call(ctx: &mut Ctx, func: &Expr, args: &[Expr]) -> String {
             if ctx.checked.structs.contains_key(&name.name) {
                 return format!("new {}({})", name.name, argv.join(", "));
             }
-            format!("await {}({})", flat(&ctx.module, &name.name), argv.join(", "))
+            format!(
+                "await {}({})",
+                flat(&ctx.module, &name.name),
+                argv.join(", ")
+            )
         }
         Expr::Member { recv, name, .. } => {
             if let Expr::Ident(ns) = recv.as_ref() {
@@ -619,7 +699,12 @@ fn emit_call(ctx: &mut Ctx, func: &Expr, args: &[Expr]) -> String {
                     }
                 }
             }
-            format!("await {}.{}({})", emit_expr(ctx, recv), name.name, argv.join(", "))
+            format!(
+                "await {}.{}({})",
+                emit_expr(ctx, recv),
+                name.name,
+                argv.join(", ")
+            )
         }
         other => {
             let callee = emit_expr(ctx, other);
@@ -629,7 +714,11 @@ fn emit_call(ctx: &mut Ctx, func: &Expr, args: &[Expr]) -> String {
 }
 
 fn emit_intrinsic(name: &str, argv: Vec<String>) -> String {
-    let a = |i: usize| argv.get(i).cloned().unwrap_or_else(|| "undefined".to_string());
+    let a = |i: usize| {
+        argv.get(i)
+            .cloned()
+            .unwrap_or_else(|| "undefined".to_string())
+    };
     match name {
         "__print" => format!("qlobPrint({})", a(0)),
         "__println" => format!("qlobPrintln({})", a(0)),
@@ -656,20 +745,29 @@ fn emit_method(ctx: &mut Ctx, recv: &Expr, name: &Ident, args: &[Expr]) -> Strin
         if !ctx.scope.contains(&ns.name) {
             if let Some(path) = ctx.ns_module(&ns.name) {
                 let argv: Vec<String> = args.iter().map(|a| emit_expr(ctx, a)).collect();
-                return format!("{}({})", flat(&path, &name.name), argv.join(", "));
+                return format!("await {}({})", flat(&path, &name.name), argv.join(", "));
             }
         }
     }
     let rt = ctx.ty(recv);
     let r = emit_expr(ctx, recv);
     let argv: Vec<String> = args.iter().map(|a| emit_expr(ctx, a)).collect();
-    let a = |i: usize| argv.get(i).cloned().unwrap_or_else(|| "undefined".to_string());
+    let a = |i: usize| {
+        argv.get(i)
+            .cloned()
+            .unwrap_or_else(|| "undefined".to_string())
+    };
 
     if matches!(rt, Type::Struct(..)) {
         return format!("await {}.{}({})", r, name.name, argv.join(", "));
     }
     if matches!(rt, Type::Any | Type::Var(_)) {
-        return format!("await qlobMethod({}, \"{}\", [{}])", r, name.name, argv.join(", "));
+        return format!(
+            "await qlobMethod({}, \"{}\", [{}])",
+            r,
+            name.name,
+            argv.join(", ")
+        );
     }
     match (&rt, name.name.as_str()) {
         (Type::Str, "len") => format!("{}.length", r),
@@ -723,7 +821,12 @@ fn emit_method(ctx: &mut Ctx, recv: &Expr, name: &Ident, args: &[Expr]) -> Strin
         (Type::Map(..), "values") => format!("Array.from({}.values())", r),
         (Type::Map(..), "clear") => format!("{}.clear()", r),
         (Type::Map(..), "to_str") => format!("qlobMapToStr({})", r),
-        _ => format!("await qlobMethod({}, \"{}\", [{}])", r, name.name, argv.join(", ")),
+        _ => format!(
+            "await qlobMethod({}, \"{}\", [{}])",
+            r,
+            name.name,
+            argv.join(", ")
+        ),
     }
 }
 
@@ -1011,7 +1114,6 @@ export default function App() {{
         run = run
     )
 }
-
 
 /// Typed twin of `JS_RUNTIME`, embedded in `src/program.ts`.
 const TS_RUNTIME: &str = r#"/* Generated by the Qlobis compiler — typed web runtime helpers. */

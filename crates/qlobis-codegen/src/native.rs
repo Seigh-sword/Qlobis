@@ -5,8 +5,8 @@
 
 use super::GenFile;
 use qlobis_ast::{BinOp, Type, UnOp};
-use qlobis_ir::passes::optimize;
 use qlobis_ir::lower::lower;
+use qlobis_ir::passes::optimize;
 use qlobis_ir::{CallTarget, IrFunc, IrProgram, RValue, Stmt, StrPiece};
 use qlobis_tyck::Target;
 use std::collections::HashMap;
@@ -17,6 +17,19 @@ pub fn generate(input: &super::GenInput) -> Vec<GenFile> {
     let mut emitter = CppEmitter {
         generic_env: HashMap::new(),
         slots: Vec::new(),
+        fn_sigs: program
+            .funcs
+            .iter()
+            .map(|f| {
+                (
+                    f.name.clone(),
+                    (
+                        f.params.iter().map(|(_, t)| t.clone()).collect::<Vec<_>>(),
+                        f.ret.clone(),
+                    ),
+                )
+            })
+            .collect(),
         out: String::new(),
     };
     emitter.emit_program(&program, input.package);
@@ -87,6 +100,8 @@ fn cpp_type_env(t: &Type, env: &HashMap<String, String>) -> String {
 struct CppEmitter {
     generic_env: HashMap<String, String>,
     slots: Vec<(String, Type)>,
+    /// Emitted name -> (param types, return type) for function values.
+    fn_sigs: HashMap<String, (Vec<Type>, Type)>,
     out: String,
 }
 
@@ -170,7 +185,8 @@ impl CppEmitter {
             } else {
                 self.out.push_str(&format!("        {}();\n", entry));
             }
-            self.out.push_str("    } catch (const qlob::QlobError& e) {\n");
+            self.out
+                .push_str("    } catch (const qlob::QlobError& e) {\n");
             self.out
                 .push_str("        std::cerr << \"error: \" << e.what() << \"\\n\";\n");
             self.out.push_str("        return 1;\n");
@@ -209,12 +225,8 @@ impl CppEmitter {
             .map(|(n, t)| format!("{} {}", self.ty(t), n))
             .collect();
         if free {
-            self.out.push_str(&format!(
-                "static {} {}({})",
-                ret,
-                f.name,
-                params.join(", ")
-            ));
+            self.out
+                .push_str(&format!("static {} {}({})", ret, f.name, params.join(", ")));
         } else {
             // Methods keep their original name inside the struct.
             let mname = f.qual_name.rsplit("::").next().unwrap_or(&f.name);
@@ -367,7 +379,8 @@ impl CppEmitter {
                 self.out.push_str("try {\n");
                 self.emit_block(body, indent + 1);
                 self.ind(indent);
-                self.out.push_str("} catch (const std::exception& __qlob_exc) {\n");
+                self.out
+                    .push_str("} catch (const std::exception& __qlob_exc) {\n");
                 if let Some(slot) = var {
                     let (name, _) = self.slot_info(*slot);
                     self.ind(indent + 1);
@@ -435,7 +448,32 @@ impl CppEmitter {
                     name
                 }
             }
-            RValue::FuncRef(name) => name.clone(),
+            RValue::FuncRef(name) => {
+                // Wrap in `std::function` so calls through generic callable
+                // parameters can deduce their template arguments.
+                match self.fn_sigs.get(name).filter(|(ps, _)| {
+                    ps.iter()
+                        .chain(std::iter::once(&Type::None))
+                        .all(|t| !uses_generic(t, &self.generic_env))
+                }) {
+                    Some((ps, ret)) => {
+                        let _ = ret;
+                        let sig_ret = if matches!(ret, Type::None) {
+                            "void".to_string()
+                        } else {
+                            self.ty(ret)
+                        };
+                        let sig_params: Vec<String> = ps.iter().map(|t| self.ty(t)).collect();
+                        format!(
+                            "std::function<{}({})>({})",
+                            sig_ret,
+                            sig_params.join(", "),
+                            name
+                        )
+                    }
+                    None => name.clone(),
+                }
+            }
             RValue::List(items, ty) => {
                 let inner: Vec<String> = items.iter().map(|i| self.rvalue(i)).collect();
                 let lty = self.ty(ty);
@@ -444,14 +482,12 @@ impl CppEmitter {
             RValue::Map(entries, ty) => {
                 let inner: Vec<String> = entries
                     .iter()
-                    .map(|(k, val)| {
-                        format!("{{{}, {}}}", self.rvalue(k), self.rvalue(val))
-                    })
+                    .map(|(k, val)| format!("{{{}, {}}}", self.rvalue(k), self.rvalue(val)))
                     .collect();
                 let mty = self.ty(ty);
                 format!("{}{{{}}}", mty, inner.join(", "))
             }
-            RValue::StructCtor(name, args, ty) => {
+            RValue::StructCtor(_name, args, ty) => {
                 let inner: Vec<String> = args.iter().map(|a| self.rvalue(a)).collect();
                 let sty = self.ty(ty);
                 format!("{}{{{}}}", sty, inner.join(", "))
@@ -514,7 +550,16 @@ impl CppEmitter {
                         "range" => format!("qlob::range_of({})", argv.join(", ")),
                         other => format!("/* builtin {} */({})", other, argv.join(", ")),
                     },
-                    CallTarget::Host(name) => format!("{}({})", name, argv.join(", ")),
+                    CallTarget::Host(name) => {
+                        // Indirect calls through function values are lowered
+                        // as `__qlobis_call_local_<slot>`.
+                        if let Some(slot) = name.strip_prefix("__qlobis_call_local_") {
+                            let slot: u32 = slot.parse().unwrap_or(0);
+                            let (lname, _) = self.slot_info(slot);
+                            return format!("{}({})", lname, argv.join(", "));
+                        }
+                        format!("{}({})", name, argv.join(", "))
+                    }
                     CallTarget::Indirect => {
                         let callee = argv.first().cloned().unwrap_or_default();
                         let rest = argv[1..].join(", ");

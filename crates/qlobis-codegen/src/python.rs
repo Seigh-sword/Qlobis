@@ -6,11 +6,11 @@ use qlobis_ast::*;
 use qlobis_tyck::{ModuleInput, Target};
 
 const PY_KEYWORDS: &[&str] = &[
-    "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class",
-    "continue", "def", "del", "elif", "else", "except", "finally", "for", "from", "global",
-    "if", "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass", "raise", "return",
-    "try", "while", "with", "yield", "print", "input", "len", "str", "int", "float", "bool",
-    "list", "dict", "map", "range", "type", "id", "self",
+    "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class", "continue",
+    "def", "del", "elif", "else", "except", "finally", "for", "from", "global", "if", "import",
+    "in", "is", "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try", "while",
+    "with", "yield", "print", "input", "len", "str", "int", "float", "bool", "list", "dict", "map",
+    "range", "type", "id", "self",
 ];
 
 pub fn py_name(name: &str) -> String {
@@ -23,7 +23,9 @@ pub fn py_name(name: &str) -> String {
 
 /// `std::io` -> `std__io`
 pub fn module_file_stem(path: &str) -> String {
-    path.replace("::", "__").replace('/', "__").replace('-', "_")
+    path.replace("::", "__")
+        .replace('/', "__")
+        .replace('-', "_")
 }
 
 pub fn generate(input: &super::GenInput) -> Vec<GenFile> {
@@ -36,7 +38,10 @@ pub fn generate(input: &super::GenInput) -> Vec<GenFile> {
             contents: ctx.out,
         });
     }
-    files.push(GenFile { path: "qlob_rt.py".to_string(), contents: RUNTIME.to_string() });
+    files.push(GenFile {
+        path: "qlob_rt.py".to_string(),
+        contents: RUNTIME.to_string(),
+    });
     files.push(GenFile {
         path: "main_qlobis.py".to_string(),
         contents: entry_file(input),
@@ -213,7 +218,9 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
             ctx.scope.declare(&name.name);
             ctx.line(&format!("{} = {}", n, v));
         }
-        Stmt::Assign { target, op, value, .. } => {
+        Stmt::Assign {
+            target, op, value, ..
+        } => {
             let t = emit_expr(ctx, target);
             let v = emit_expr(ctx, value);
             match op {
@@ -221,7 +228,12 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
                 None => ctx.line(&format!("{} = {}", t, v)),
             }
         }
-        Stmt::If { cond, then, otherwise, .. } => {
+        Stmt::If {
+            cond,
+            then,
+            otherwise,
+            ..
+        } => {
             let c = emit_expr(ctx, cond);
             ctx.line(&format!("if {}:", c));
             emit_block(ctx, &then.stmts);
@@ -235,7 +247,9 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
             ctx.line(&format!("while {}:", c));
             emit_block(ctx, &body.stmts);
         }
-        Stmt::For { var, iter, body, .. } => {
+        Stmt::For {
+            var, iter, body, ..
+        } => {
             let it = emit_expr(ctx, iter);
             let v = py_name(&var.name);
             ctx.line(&format!("for {} in {}:", v, it));
@@ -275,7 +289,10 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
         }
         Stmt::Expr { expr, .. } => {
             // Assignment-shaped built-in methods.
-            if let Expr::Method { recv, name, args, .. } = expr {
+            if let Expr::Method {
+                recv, name, args, ..
+            } = expr
+            {
                 if name.name == "set" && args.len() == 2 {
                     let r = emit_expr(ctx, recv);
                     let i = emit_expr(ctx, &args[0]);
@@ -367,7 +384,9 @@ fn emit_expr(ctx: &mut Ctx, e: &Expr) -> String {
             }
             format!("{}.{}", emit_expr(ctx, recv), name.name)
         }
-        Expr::Method { recv, name, args, .. } => emit_method(ctx, recv.as_ref(), name, args, e),
+        Expr::Method {
+            recv, name, args, ..
+        } => emit_method(ctx, recv.as_ref(), name, args, e),
         Expr::Call { func, args, .. } => emit_call(ctx, func.as_ref(), args),
     }
 }
@@ -488,17 +507,18 @@ fn emit_call(ctx: &mut Ctx, func: &Expr, args: &[Expr]) -> String {
             if let Expr::Ident(ns) = recv.as_ref() {
                 if !ctx.scope.contains(&ns.name) {
                     if let Some(path) = ctx.ns_module(&ns.name) {
-                        let call = format!(
-                            "{}.{}({})",
-                            ns.name,
-                            py_name(&name.name),
-                            argv.join(", ")
-                        );
+                        let call =
+                            format!("{}.{}({})", ns.name, py_name(&name.name), argv.join(", "));
                         return wrap_async_call(ctx, &path, &name.name, call);
                     }
                 }
             }
-            format!("{}.{}({})", emit_expr(ctx, recv), name.name, argv.join(", "))
+            format!(
+                "{}.{}({})",
+                emit_expr(ctx, recv),
+                name.name,
+                argv.join(", ")
+            )
         }
         other => {
             let callee = emit_expr(ctx, other);
@@ -549,12 +569,7 @@ fn emit_method(ctx: &mut Ctx, recv: &Expr, name: &Ident, args: &[Expr], _full: &
         if !ctx.scope.contains(&ns.name) {
             if let Some(path) = ctx.ns_module(&ns.name) {
                 let argv: Vec<String> = args.iter().map(|a| emit_expr(ctx, a)).collect();
-                let call = format!(
-                    "{}.{}({})",
-                    ns.name,
-                    py_name(&name.name),
-                    argv.join(", ")
-                );
+                let call = format!("{}.{}({})", ns.name, py_name(&name.name), argv.join(", "));
                 return wrap_async_call(ctx, &path, &name.name, call);
             }
         }
@@ -835,16 +850,18 @@ mod tests {
             is_stdlib: false,
         }];
         let out = check(&modules, "test_pkg", &[Target::Python], &mut diags);
-        assert!(!diags.has_errors(), "{}", diags.render(&qlobis_ast::SourceMap::new(), false));
-        let files = generate(
-            &super::super::GenInput {
-                modules: &modules,
-                checked: &out,
-                entry: &("test_pkg::main".to_string(), "main".to_string()),
-                package: "test_pkg",
-                release: false,
-            },
+        assert!(
+            !diags.has_errors(),
+            "{}",
+            diags.render(&qlobis_ast::SourceMap::new(), false)
         );
+        let files = generate(&super::super::GenInput {
+            modules: &modules,
+            checked: &out,
+            entry: &("test_pkg::main".to_string(), "main".to_string()),
+            package: "test_pkg",
+            release: false,
+        });
         files
             .iter()
             .find(|f| f.path == "test_pkg__main.py")

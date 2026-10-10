@@ -11,7 +11,10 @@ use qlobis_ast::{FileId, Span};
 pub enum StrRawPart {
     Lit(String),
     /// Raw source text of `{ ... }` plus its span in the enclosing file.
-    Interp { src: String, span: Span },
+    Interp {
+        src: String,
+        span: Span,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -181,7 +184,15 @@ pub struct LexResult {
 /// Tokenize `src`. `file` is the file id used in all spans. `offset` shifts
 /// spans so that recursively lexed interpolation segments keep global spans.
 pub fn lex(file: FileId, src: &str, offset: u32, diags: &mut Diagnostics) -> LexResult {
-    Lexer { src: src.as_bytes(), file, offset, pos: 0, diags, docs: Vec::new() }.run()
+    Lexer {
+        src: src.as_bytes(),
+        file,
+        offset,
+        pos: 0,
+        diags,
+        docs: Vec::new(),
+    }
+    .run()
 }
 
 struct Lexer<'a> {
@@ -195,7 +206,11 @@ struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     fn span(&self, start: usize, end: usize) -> Span {
-        Span::new(self.file, self.offset + start as u32, self.offset + end as u32)
+        Span::new(
+            self.file,
+            self.offset + start as u32,
+            self.offset + end as u32,
+        )
     }
 
     fn peek(&self) -> Option<u8> {
@@ -215,7 +230,8 @@ impl<'a> Lexer<'a> {
     }
 
     fn error(&mut self, span: Span, msg: impl Into<String>) {
-        self.diags.push(Diagnostic::error(msg).code("E0100").primary(span, "here"));
+        self.diags
+            .push(Diagnostic::error(msg).code("E0100").primary(span, "here"));
     }
 
     fn run(mut self) -> LexResult {
@@ -241,7 +257,8 @@ impl<'a> Lexer<'a> {
                         let raw = &self.src[start + 3..self.pos];
                         let text = String::from_utf8_lossy(raw).trim().to_string();
                         let span = self.span(start, self.pos);
-                        self.docs.push((self.offset + start as u32, DocComment { text, span }));
+                        self.docs
+                            .push((self.offset + start as u32, DocComment { text, span }));
                     } else {
                         while let Some(c) = self.peek() {
                             if c == b'\n' {
@@ -290,8 +307,13 @@ impl<'a> Lexer<'a> {
                             .collect();
                         let span = self.span(start, self.pos);
                         match i64::from_str_radix(&text, 16) {
-                            Ok(v) => tokens.push(Token { tok: Tok::Int(v), span }),
-                            Err(_) => self.error(span, "hexadecimal literal out of range for `int`"),
+                            Ok(v) => tokens.push(Token {
+                                tok: Tok::Int(v),
+                                span,
+                            }),
+                            Err(_) => {
+                                self.error(span, "hexadecimal literal out of range for `int`")
+                            }
                         }
                         continue;
                     }
@@ -299,7 +321,8 @@ impl<'a> Lexer<'a> {
                         self.pos += 1;
                     }
                     let mut is_float = false;
-                    if self.peek() == Some(b'.') && matches!(self.peek2(), Some(c) if c.is_ascii_digit())
+                    if self.peek() == Some(b'.')
+                        && matches!(self.peek2(), Some(c) if c.is_ascii_digit())
                     {
                         is_float = true;
                         self.pos += 1;
@@ -315,7 +338,8 @@ impl<'a> Lexer<'a> {
                         }
                         if matches!(self.peek(), Some(c) if c.is_ascii_digit()) {
                             is_float = true;
-                            while matches!(self.peek(), Some(c) if c.is_ascii_digit() || c == b'_') {
+                            while matches!(self.peek(), Some(c) if c.is_ascii_digit() || c == b'_')
+                            {
                                 self.pos += 1;
                             }
                         } else {
@@ -330,12 +354,18 @@ impl<'a> Lexer<'a> {
                     let span = self.span(start, self.pos);
                     if is_float {
                         match raw.parse::<f64>() {
-                            Ok(v) => tokens.push(Token { tok: Tok::Float(v), span }),
+                            Ok(v) => tokens.push(Token {
+                                tok: Tok::Float(v),
+                                span,
+                            }),
                             Err(_) => self.error(span, "invalid float literal"),
                         }
                     } else {
                         match raw.parse::<i64>() {
-                            Ok(v) => tokens.push(Token { tok: Tok::Int(v), span }),
+                            Ok(v) => tokens.push(Token {
+                                tok: Tok::Int(v),
+                                span,
+                            }),
                             Err(_) => self.error(span, "integer literal out of range for `int`"),
                         }
                     }
@@ -343,14 +373,19 @@ impl<'a> Lexer<'a> {
                 b'"' => {
                     let start = self.pos;
                     let tok = self.lex_string();
-                    tokens.push(Token { tok, span: self.span(start, self.pos) });
+                    tokens.push(Token {
+                        tok,
+                        span: self.span(start, self.pos),
+                    });
                 }
                 b'a'..=b'z' | b'A'..=b'Z' | b'_' => {
                     let start = self.pos;
                     while matches!(self.peek(), Some(c) if c.is_ascii_alphanumeric() || c == b'_') {
                         self.pos += 1;
                     }
-                    let word = std::str::from_utf8(&self.src[start..self.pos]).unwrap_or("").to_string();
+                    let word = std::str::from_utf8(&self.src[start..self.pos])
+                        .unwrap_or("")
+                        .to_string();
                     let span = self.span(start, self.pos);
                     let tok = match word.as_str() {
                         "defin" => Tok::Defin,
@@ -404,8 +439,14 @@ impl<'a> Lexer<'a> {
             }
         }
         let end = self.src.len();
-        tokens.push(Token { tok: Tok::Eof, span: self.span(end, end) });
-        LexResult { tokens, docs: self.docs }
+        tokens.push(Token {
+            tok: Tok::Eof,
+            span: self.span(end, end),
+        });
+        LexResult {
+            tokens,
+            docs: self.docs,
+        }
     }
 
     fn lex_punct(&mut self) -> (Tok, bool) {

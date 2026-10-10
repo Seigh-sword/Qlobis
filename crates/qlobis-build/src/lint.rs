@@ -16,11 +16,7 @@ pub fn lint(modules: &[ModuleInput], checked: &CheckOutput, map: &SourceMap) -> 
         };
         l.run();
         for (span, msg) in l.findings {
-            out.push(format!(
-                "{}: warning: {}",
-                map.location(span),
-                msg
-            ));
+            out.push(format!("{}: warning: {}", map.location(span), msg));
         }
     }
     out
@@ -28,6 +24,7 @@ pub fn lint(modules: &[ModuleInput], checked: &CheckOutput, map: &SourceMap) -> 
 
 struct Linter<'a> {
     m: &'a ModuleInput,
+    #[allow(dead_code)]
     checked: &'a CheckOutput,
     findings: Vec<(Span, String)>,
 }
@@ -82,10 +79,7 @@ impl<'a> Linter<'a> {
                 .unwrap_or(&imp.path);
             let last = last.rsplit("::").next().unwrap_or(last);
             if !used_imports.contains(last) {
-                self.warn(
-                    imp.span,
-                    format!("unused import `{}`", imp.path),
-                );
+                self.warn(imp.span, format!("unused import `{}`", imp.path));
             }
         }
     }
@@ -139,13 +133,23 @@ impl<'a> Linter<'a> {
                 self.expr(target, used, read);
                 self.expr(value, used, read);
             }
-            Stmt::If { cond, then, otherwise, .. } => {
+            Stmt::If {
+                cond,
+                then,
+                otherwise,
+                ..
+            } => {
                 self.expr(cond, used, read);
                 self.block(then, used, assigned, read, false);
                 if let Some(o) = otherwise {
                     self.block(o, used, assigned, read, false);
                 }
-                if then.stmts.is_empty() && otherwise.as_ref().map(|o| o.stmts.is_empty()).unwrap_or(true) {
+                if then.stmts.is_empty()
+                    && otherwise
+                        .as_ref()
+                        .map(|o| o.stmts.is_empty())
+                        .unwrap_or(true)
+                {
                     self.warn(s.span(), "empty `if` body");
                 }
             }
@@ -187,7 +191,9 @@ impl<'a> Linter<'a> {
                 self.expr(recv, used, read);
                 let _ = name;
             }
-            Expr::Method { recv, name, args, .. } => {
+            Expr::Method {
+                recv, name, args, ..
+            } => {
                 if let Expr::Ident(ns) = recv.as_ref() {
                     used.insert(ns.name.clone());
                 }
@@ -257,11 +263,7 @@ pub fn render(findings: &[String]) -> String {
     if findings.is_empty() {
         "no warnings".to_string()
     } else {
-        format!(
-            "{} warning(s):\n{}",
-            findings.len(),
-            findings.join("\n")
-        )
+        format!("{} warning(s):\n{}", findings.len(), findings.join("\n"))
     }
 }
 
@@ -288,16 +290,14 @@ mod tests {
     #[test]
     fn warns_unused_import() {
         let out = lint_src("@module.import(\"std::io\")\n\ndefin main() {\n  let x = 1\n}\n");
-        assert!(
-            out.iter().any(|w| w.contains("unused import")),
-            "{:?}",
-            out
-        );
+        assert!(out.iter().any(|w| w.contains("unused import")), "{:?}", out);
     }
 
     #[test]
     fn clean_program_has_no_warnings() {
-        let out = lint_src("defin main() {\n  let count = 1\n  let y = count + 1\n  __println(str(y))\n}\n");
+        let out = lint_src(
+            "defin main() {\n  let count = 1\n  let y = count + 1\n  __println(str(y))\n}\n",
+        );
         assert!(out.is_empty(), "{:?}", out);
     }
 

@@ -7,7 +7,11 @@ use std::fmt::Write as _;
 
 /// Generate Markdown documentation for every module. Returns
 /// `(relative_path, contents)` pairs.
-pub fn generate_docs(modules: &[ModuleInput], package: &str, version: &str) -> Vec<(String, String)> {
+pub fn generate_docs(
+    modules: &[ModuleInput],
+    package: &str,
+    version: &str,
+) -> Vec<(String, String)> {
     let mut out = Vec::new();
     let mut index = format!("# {}\n\nVersion {}\n\n## Modules\n\n", package, version);
     for m in modules {
@@ -29,12 +33,7 @@ pub fn generate_docs(modules: &[ModuleInput], package: &str, version: &str) -> V
                     let _ = writeln!(md, "| field | type |");
                     let _ = writeln!(md, "| --- | --- |");
                     for f in &s.fields {
-                        let _ = writeln!(
-                            md,
-                            "| `{}` | `{}` |",
-                            f.name.name,
-                            type_text(&f.ty)
-                        );
+                        let _ = writeln!(md, "| `{}` | `{}` |", f.name.name, type_text(&f.ty));
                     }
                     let _ = writeln!(md);
                 }
@@ -90,7 +89,11 @@ fn write_func(md: &mut String, f: &FuncDef, level: &str) {
     let _ = writeln!(
         md,
         "{}{}defin {}({}) -> {}\n",
-        level, async_kw, f.name.name, params.join(", "), ret
+        level,
+        async_kw,
+        f.name.name,
+        params.join(", "),
+        ret
     );
     if !f.doc.is_empty() {
         let _ = writeln!(md, "{}\n", f.doc.join(" "));
@@ -132,8 +135,7 @@ pub fn write_docs(
     let mut written = Vec::new();
     for (name, contents) in generate_docs(modules, package, version) {
         let p = out_dir.join(name);
-        std::fs::write(&p, contents)
-            .map_err(|e| format!("cannot write {}: {}", p.display(), e))?;
+        std::fs::write(&p, contents).map_err(|e| format!("cannot write {}: {}", p.display(), e))?;
         written.push(p);
     }
     Ok(written)
@@ -158,7 +160,11 @@ mod tests {
         let _ = check(&modules, "p", &[qlobis_tyck::Target::Python], &mut diags);
         let docs = generate_docs(&modules, "p", "1.0.0");
         let md = docs.iter().find(|(n, _)| n == "p__main.md").unwrap();
-        assert!(md.1.contains("defin add(a: int, b: int) -> int"), "{}", md.1);
+        assert!(
+            md.1.contains("defin add(a: int, b: int) -> int"),
+            "{}",
+            md.1
+        );
         assert!(md.1.contains("struct `Point`"), "{}", md.1);
         assert!(md.1.contains("Add two numbers."), "{}", md.1);
         let index = docs.iter().find(|(n, _)| n == "index.md").unwrap();

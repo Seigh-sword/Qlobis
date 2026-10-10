@@ -90,7 +90,7 @@ pub fn format_source(src: &str) -> Result<String, String> {
     Ok(result)
 }
 
-fn tok_text(tok: &Tok, src: &str) -> String {
+fn tok_text(tok: &Tok, _src: &str) -> String {
     match tok {
         Tok::Int(v) => format!("{}", v),
         Tok::Float(v) => format!("{}", v),
@@ -209,7 +209,13 @@ fn space_between(prev: Option<&Tok>, next: &Tok) -> bool {
     // No space before these.
     if matches!(
         next,
-        Tok::Dot | Tok::Comma | Tok::Semi | Tok::RParen | Tok::RBracket | Tok::LParen | Tok::LBracket
+        Tok::Dot
+            | Tok::Comma
+            | Tok::Semi
+            | Tok::RParen
+            | Tok::RBracket
+            | Tok::LParen
+            | Tok::LBracket
     ) {
         // Calls and indexing: `f(...)` / `xs[i]` — no space after the callee.
         return matches!(next, Tok::LParen | Tok::LBracket)
@@ -230,10 +236,7 @@ mod tests {
 
     #[test]
     fn formats_basic_program() {
-        let out = format_source(
-            "defin main(){let x=1\nif x>0{\nreturn\n}\n}\n",
-        )
-        .unwrap();
+        let out = format_source("defin main(){let x=1\nif x>0{\nreturn\n}\n}\n").unwrap();
         assert!(out.contains("defin main() {"), "{}", out);
         assert!(out.contains("  let x = 1"), "{}", out);
         assert!(out.contains("  if x > 0 {"), "{}", out);

@@ -267,9 +267,7 @@ pub fn eliminate_dead_functions(program: &mut IrProgram) {
         }
     }
     program.funcs.retain(|f| {
-        reachable.contains(&f.name)
-            || f.self_type.is_some()
-            || f.name == "__qlobis_main"
+        reachable.contains(&f.name) || f.self_type.is_some() || f.name == "__qlobis_main"
     });
     // Keep all methods (they may be called dynamically through values).
 }

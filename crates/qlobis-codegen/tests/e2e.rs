@@ -166,7 +166,11 @@ fn python_executes_and_matches() {
         stdout,
         stderr
     );
-    assert_eq!(stdout, EXPECTED, "python stdout mismatch (stderr: {})", stderr);
+    assert_eq!(
+        stdout, EXPECTED,
+        "python stdout mismatch (stderr: {})",
+        stderr
+    );
 }
 
 #[test]
@@ -215,23 +219,12 @@ fn native_executes_and_matches() {
     let dir = out_dir("native");
     write_files(&dir, &files);
     let compile = Command::new("g++")
-        .args([
-            "-std=c++17",
-            "-O1",
-            "-pthread",
-            "-o",
-            "prog",
-            "program.cpp",
-        ])
+        .args(["-std=c++17", "-O1", "-pthread", "-o", "prog", "program.cpp"])
         .current_dir(&dir)
         .output()
         .expect("run g++");
     let c_err = String::from_utf8_lossy(&compile.stderr);
-    assert!(
-        compile.status.success(),
-        "g++ failed:\n{}",
-        c_err
-    );
+    assert!(compile.status.success(), "g++ failed:\n{}", c_err);
     let out = Command::new(dir.join("prog"))
         .current_dir(&dir)
         .output()
@@ -239,7 +232,11 @@ fn native_executes_and_matches() {
     let stdout = String::from_utf8_lossy(&out.stdout);
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(out.status.success(), "prog failed:\n{}\n{}", stdout, stderr);
-    assert_eq!(stdout, EXPECTED, "native stdout mismatch (stderr: {})", stderr);
+    assert_eq!(
+        stdout, EXPECTED,
+        "native stdout mismatch (stderr: {})",
+        stderr
+    );
 }
 
 #[test]
@@ -251,7 +248,11 @@ fn php_golden() {
         .expect("module file")
         .contents
         .clone();
-    assert!(main.contains("namespace qlobis\\test_pkg__main;"), "{}", main);
+    assert!(
+        main.contains("namespace qlobis\\test_pkg__main;"),
+        "{}",
+        main
+    );
     assert!(main.contains("function main()"), "{}", main);
     assert!(main.contains("class Point"), "{}", main);
     assert!(main.contains("function sum()"), "{}", main);
@@ -264,7 +265,11 @@ fn php_golden() {
         .contents
         .clone();
     assert!(index.contains("qlobis_runtime.php"), "{}", index);
-    assert!(index.contains("\\qlobis\\test_pkg__main\\main"), "{}", index);
+    assert!(
+        index.contains("\\qlobis\\test_pkg__main\\main"),
+        "{}",
+        index
+    );
     let runtime = files
         .iter()
         .find(|f| f.path == "qlobis_runtime.php")
@@ -294,7 +299,11 @@ fn kotlin_golden() {
     assert!(main.contains("QR.idiv(n, 2L)"), "{}", main);
     // `main` is suspend: async calls appear plain (no runBlocking wrapper).
     assert!(main.contains("fetch()"), "{}", main);
-    assert!(main.contains("import qlobis.generated.QlobRuntime as QR"), "{}", main);
+    assert!(
+        main.contains("import qlobis.generated.QlobRuntime as QR"),
+        "{}",
+        main
+    );
     let main_kt = files
         .iter()
         .find(|f| f.path == "Main.kt")
@@ -329,8 +338,16 @@ fn tsx_and_js_flavors_agree() {
         .clone();
     assert!(ts.contains("class Point"), "{}", ts);
     assert!(js.contains("class Point"), "{}", js);
-    assert!(ts.contains("async function qlob_test_pkg__main_main"), "{}", ts);
-    assert!(js.contains("async function qlob_test_pkg__main_main"), "{}", js);
+    assert!(
+        ts.contains("async function qlob_test_pkg__main_main"),
+        "{}",
+        ts
+    );
+    assert!(
+        js.contains("async function qlob_test_pkg__main_main"),
+        "{}",
+        js
+    );
     // The TS flavor carries types; the JS flavor must not.
     assert!(ts.contains("x: number"), "{}", ts);
     assert!(!js.contains("x: number"), "{}", js);

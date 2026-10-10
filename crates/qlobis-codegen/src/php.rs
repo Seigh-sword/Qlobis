@@ -6,15 +6,89 @@ use qlobis_ast::*;
 use qlobis_tyck::{ModuleInput, Target};
 
 const PHP_RESERVED: &[&str] = &[
-    "abstract", "and", "array", "as", "break", "callable", "case", "catch", "class", "clone",
-    "const", "continue", "declare", "default", "die", "do", "echo", "else", "elseif", "empty",
-    "enddeclare", "endfor", "endforeach", "endif", "endswitch", "endwhile", "eval", "exit",
-    "extends", "final", "finally", "fn", "for", "foreach", "function", "global", "goto", "if",
-    "implements", "include", "include_once", "instanceof", "insteadof", "interface", "isset",
-    "list", "match", "namespace", "new", "or", "print", "private", "protected", "public",
-    "readonly", "require", "require_once", "return", "static", "switch", "throw", "trait", "try",
-    "unset", "use", "var", "while", "xor", "yield", "int", "float", "bool", "string", "true",
-    "false", "null", "void", "iterable", "object", "mixed", "never", "enum", "from",
+    "abstract",
+    "and",
+    "array",
+    "as",
+    "break",
+    "callable",
+    "case",
+    "catch",
+    "class",
+    "clone",
+    "const",
+    "continue",
+    "declare",
+    "default",
+    "die",
+    "do",
+    "echo",
+    "else",
+    "elseif",
+    "empty",
+    "enddeclare",
+    "endfor",
+    "endforeach",
+    "endif",
+    "endswitch",
+    "endwhile",
+    "eval",
+    "exit",
+    "extends",
+    "final",
+    "finally",
+    "fn",
+    "for",
+    "foreach",
+    "function",
+    "global",
+    "goto",
+    "if",
+    "implements",
+    "include",
+    "include_once",
+    "instanceof",
+    "insteadof",
+    "interface",
+    "isset",
+    "list",
+    "match",
+    "namespace",
+    "new",
+    "or",
+    "print",
+    "private",
+    "protected",
+    "public",
+    "readonly",
+    "require",
+    "require_once",
+    "return",
+    "static",
+    "switch",
+    "throw",
+    "trait",
+    "try",
+    "unset",
+    "use",
+    "var",
+    "while",
+    "xor",
+    "yield",
+    "int",
+    "float",
+    "bool",
+    "string",
+    "true",
+    "false",
+    "null",
+    "void",
+    "iterable",
+    "object",
+    "mixed",
+    "never",
+    "enum",
+    "from",
 ];
 
 fn php_name(name: &str) -> String {
@@ -31,7 +105,9 @@ fn php_var(name: &str) -> String {
 
 /// `std::io` -> `std__io`
 fn stem(path: &str) -> String {
-    path.replace("::", "__").replace('/', "__").replace('-', "_")
+    path.replace("::", "__")
+        .replace('/', "__")
+        .replace('-', "_")
 }
 
 /// Namespace of a module: `qlobis\std__io`.
@@ -166,10 +242,17 @@ fn emit_struct(ctx: &mut Ctx, s: &StructDef, m: &ModuleInput) {
             )
         })
         .collect();
-    ctx.line(&format!("public function __construct({}) {{", params.join(", ")));
+    ctx.line(&format!(
+        "public function __construct({}) {{",
+        params.join(", ")
+    ));
     ctx.indent += 1;
     for f in &s.fields {
-        ctx.line(&format!("$this->{} = {};", f.name.name, php_var(&f.name.name)));
+        ctx.line(&format!(
+            "$this->{} = {};",
+            f.name.name,
+            php_var(&f.name.name)
+        ));
     }
     ctx.indent -= 1;
     ctx.line("}");
@@ -210,11 +293,10 @@ fn emit_func(ctx: &mut Ctx, f: &FuncDef, owner: Option<String>) {
         if p.is_self {
             continue;
         }
-        let ty = p
-            .ty
-            .as_ref()
-            .map(|t| php_type(&ctx.checked.type_of(t.span()), ctx))
-            .unwrap_or_else(|| "mixed".to_string());
+        let ty =
+            p.ty.as_ref()
+                .map(|t| php_type(&ctx.checked.type_of(t.span()), ctx))
+                .unwrap_or_else(|| "mixed".to_string());
         params.push(format!("{} {}", ty, php_var(&p.name.name)));
         ctx.scope.declare(&p.name.name);
     }
@@ -223,7 +305,11 @@ fn emit_func(ctx: &mut Ctx, f: &FuncDef, owner: Option<String>) {
         .as_ref()
         .map(|t| php_type(&ctx.checked.type_of(t.span()), ctx))
         .unwrap_or_else(|| "void".to_string());
-    let ret = if f.ret.is_none() { "void".to_string() } else { ret };
+    let ret = if f.ret.is_none() {
+        "void".to_string()
+    } else {
+        ret
+    };
     ctx.line(&format!(
         "function {}({}): {} {{",
         php_name(&f.name.name),
@@ -256,7 +342,9 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
             ctx.scope.declare(&name.name);
             ctx.line(&format!("{} = {};", php_var(&name.name), v));
         }
-        Stmt::Assign { target, op, value, .. } => {
+        Stmt::Assign {
+            target, op, value, ..
+        } => {
             let t = emit_expr(ctx, target);
             let v = emit_expr(ctx, value);
             let op_s = op.map(|o| o.as_str()).unwrap_or("=");
@@ -267,7 +355,12 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
                 ctx.line(&format!("{} = {};", t, v));
             }
         }
-        Stmt::If { cond, then, otherwise, .. } => {
+        Stmt::If {
+            cond,
+            then,
+            otherwise,
+            ..
+        } => {
             let c = emit_expr(ctx, cond);
             ctx.line(&format!("if ({}) {{", c));
             emit_block(ctx, &then.stmts);
@@ -286,7 +379,9 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
             emit_block(ctx, &body.stmts);
             ctx.line("}");
         }
-        Stmt::For { var, iter, body, .. } => {
+        Stmt::For {
+            var, iter, body, ..
+        } => {
             let it = emit_expr(ctx, iter);
             let it_ty = ctx.ty(iter);
             let coll = match &it_ty {
@@ -311,13 +406,19 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
         },
         Stmt::Throw { value, .. } => {
             let v = emit_expr(ctx, value);
-            ctx.line(&format!("throw new \\qlobis\\QlobError(qlob_tostr({}));", v));
+            ctx.line(&format!(
+                "throw new \\qlobis\\QlobError(qlob_tostr({}));",
+                v
+            ));
         }
         Stmt::Try { body, catch, .. } => {
             ctx.line("try {");
             emit_block(ctx, &body.stmts);
             if let Some(c) = catch {
-                ctx.line(&format!("}} catch (\\Throwable {}) {{", php_var(&c.name.name)));
+                ctx.line(&format!(
+                    "}} catch (\\Throwable {}) {{",
+                    php_var(&c.name.name)
+                ));
                 ctx.scope.push();
                 ctx.scope.declare(&c.name.name);
                 for s in &c.body.stmts {
@@ -337,7 +438,10 @@ fn emit_stmt(ctx: &mut Ctx, s: &Stmt) {
             ctx.line("}");
         }
         Stmt::Expr { expr, .. } => {
-            if let Expr::Method { recv, name, args, .. } = expr {
+            if let Expr::Method {
+                recv, name, args, ..
+            } = expr
+            {
                 if matches!(name.name.as_str(), "set" | "put") && args.len() == 2 {
                     let r = emit_expr(ctx, recv);
                     let k = emit_expr(ctx, &args[0]);
@@ -382,11 +486,7 @@ fn emit_expr(ctx: &mut Ctx, e: &Expr) -> String {
                 php_var(&id.name)
             } else {
                 // Function reference (value): fully-qualified name string.
-                format!(
-                    "'\\{}\\{}'",
-                    namespace_of(&ctx.module),
-                    php_name(&id.name)
-                )
+                format!("'\\{}\\{}'", namespace_of(&ctx.module), php_name(&id.name))
             }
         }
         Expr::List(items, _) => {
@@ -418,17 +518,15 @@ fn emit_expr(ctx: &mut Ctx, e: &Expr) -> String {
             if let Expr::Ident(ns) = recv.as_ref() {
                 if !ctx.scope.contains(&ns.name) {
                     if let Some(path) = ctx.ns_module(&ns.name) {
-                        return format!(
-                            "'\\{}\\{}'",
-                            namespace_of(&path),
-                            php_name(&name.name)
-                        );
+                        return format!("'\\{}\\{}'", namespace_of(&path), php_name(&name.name));
                     }
                 }
             }
             format!("{}->{}", emit_expr(ctx, recv), name.name)
         }
-        Expr::Method { recv, name, args, .. } => emit_method(ctx, recv.as_ref(), name, args),
+        Expr::Method {
+            recv, name, args, ..
+        } => emit_method(ctx, recv.as_ref(), name, args),
         Expr::Call { func, args, .. } => emit_call(ctx, func.as_ref(), args),
     }
 }
@@ -548,7 +646,11 @@ fn emit_call(ctx: &mut Ctx, func: &Expr, args: &[Expr]) -> String {
                 return emit_intrinsic(&name.name, argv);
             }
             if ctx.checked.structs.contains_key(&name.name) {
-                return format!("new {}({})", resolve_class(ctx, &name.name), argv.join(", "));
+                return format!(
+                    "new {}({})",
+                    resolve_class(ctx, &name.name),
+                    argv.join(", ")
+                );
             }
             format!("{}({})", php_name(&name.name), argv.join(", "))
         }
@@ -669,7 +771,11 @@ fn emit_method(ctx: &mut Ctx, recv: &Expr, name: &Ident, args: &[Expr]) -> Strin
         (Type::List(_), "set") => format!("qlob_list_set({}, {}, {})", r, a(0), a(1)),
         (Type::List(_), "contains") => format!("qlob_list_contains({}, {})", r, a(0)),
         (Type::List(_), "index_of") => format!("qlob_list_index_of({}, {})", r, a(0)),
-        (Type::List(_), "join") => format!("implode(qlob_tostr({}), array_map('qlob_tostr', {}))", a(0), r),
+        (Type::List(_), "join") => format!(
+            "implode(qlob_tostr({}), array_map('qlob_tostr', {}))",
+            a(0),
+            r
+        ),
         (Type::List(_), "slice") => format!("array_slice({}, {}, {} - {})", r, a(0), a(1), a(0)),
         (Type::List(_), "reverse") => format!("qlob_list_reverse({})", r),
         (Type::List(_), "sort") => format!("qlob_list_sort({})", r),
